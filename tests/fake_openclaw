@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""OpenClaw adapter mock：stdin 收任务，stdout 按剧本逐行回放。"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+from pathlib import Path
+
+
+script_env = os.environ.get("BOLE_FAKE_SCRIPT")
+if not script_env:
+    print("BOLE_FAKE_SCRIPT 未设置", file=sys.stderr)
+    raise SystemExit(2)
+
+script_path = Path(script_env)
+state_path = Path(os.environ.get("BOLE_FAKE_STATE", str(script_path) + ".state"))
+log_path_value = os.environ.get("BOLE_FAKE_LOG")
+message = sys.stdin.read()
+thread = None
+args = sys.argv[1:]
+if "--thread" in args:
+    index = args.index("--thread")
+    if index + 1 < len(args):
+        thread = args[index + 1]
+
+if log_path_value:
+    log_path = Path(log_path_value)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("a", encoding="utf-8") as stream:
+        stream.write(
+            json.dumps(
+                {"thread": thread, "argv": args, "message": message},
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+
+try:
+    index = int(state_path.read_text(encoding="utf-8").strip())
+except (OSError, ValueError):
+    index = 0
+lines = [
+    line.strip()
+    for line in script_path.read_text(encoding="utf-8").splitlines()
+    if line.strip() and not line.lstrip().startswith("#")
+]
+if index >= len(lines):
+    print("剧本已用完", file=sys.stderr)
+    raise SystemExit(3)
+state_path.write_text(str(index + 1), encoding="utf-8")
+line = lines[index]
+if line.startswith("SLEEP:"):
+    time.sleep(float(line.split(":", 1)[1].strip()))
+    print("RESULT: FAILED | detail=sleep ended")
+else:
+    print(line)
