@@ -124,6 +124,9 @@ once after eight seconds, carry no cookies, and never bypass bot protection.
 SEEK has no suitable free public interface for this project, so it always uses
 pasted JDs and manual submission. Offline or bot-walled manual URLs stay in a
 manual queue instead of disappearing.
+Use of LinkedIn's guest interface may still be governed by platform terms.
+Evaluate and follow the rules that apply to you; Bole never attempts to evade
+access controls.
 
 The `id + normalized company/title` keys can still miss duplicates after a
 company rename or dual branding; check manually before submission.
@@ -223,6 +226,12 @@ IDs. See [CONTRIBUTING.md](CONTRIBUTING.md) and the bilingual issue/PR
 templates.
 
 ## 12. FAQ
+
+**Does Bole cost money?**
+
+The repository uses no paid API or SaaS. You still use your own Claude Code
+subscription. OpenClaw is free and open source and is only needed if you choose
+auto-submit.
 
 **Must I install OpenClaw?**
 

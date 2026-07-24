@@ -101,6 +101,8 @@ Bole 只用免费、免登录公开通道：
 请求使用自定义 UA，间隔至少 2 秒；429 首次等待 8 秒后只重试一次；不带 Cookie，
 不绕验证码或机器人墙。SEEK 没有适合本项目的免费公开接口，因此恒走手贴/手动投递。
 断网或遇墙的手动 URL 会保留在人工队列，不会静默丢失。
+LinkedIn 访客接口的使用仍可能受平台条款约束；请自行评估并遵守适用规则，Bole 不会
+尝试规避访问限制。
 
 公司改名或双名时，`id + 规范化公司/标题` 双键仍可能漏掉重复职位；投递前请人工自查。
 `platforms_preference` 只改变报告展示顺序，不会让不可用通道变得可用。
@@ -180,6 +182,11 @@ python3 -m unittest discover tests
 详见 [CONTRIBUTING.md](CONTRIBUTING.md) 和双语 issue/PR 模板。
 
 ## 12. FAQ
+
+**要花钱吗？**
+
+仓库不接付费 API 或 SaaS。你仍需使用自己的 Claude Code 订阅；OpenClaw 免费开源且
+只在选择自动投递时需要。
 
 **一定要安装 OpenClaw 吗？**
 
