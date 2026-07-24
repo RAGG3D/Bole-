@@ -18,9 +18,19 @@
    ```
 
 3. 用户手贴 JD：先运行 `sources.py jd --source paste --file <txt>`，从文本抽取
-   title/company，构造 §6.2 candidate。人工队列的可读 JD 同理。将这些记录并入
-   ledger.filter 后的候选再进 triage；`source=manual` 会直接进 SCORE，但资格与红线
-   闸门仍生效。
+   title/company，构造一条与 `state/discover.json` 中候选**同构**的记录：
+
+   ```json
+   {"source": "manual", "channel": "paste",
+    "title": "<抽取>", "company": "<抽取>", "location": null,
+    "date": null, "days_ago": null, "in_window": true,
+    "id": null, "url": "<有链接则填，手贴无链接时空串>", "keyword": null}
+   ```
+
+   手动 URL 岗把 `channel` 改为 `"url"` 并保留 url（后续裁决与 README 投递指引都
+   依赖它）。人工队列的可读 JD 同理。`source` 必须为 `"manual"`——triage 只对
+   source=manual 直送 SCORE。把这些记录追加进 `state/filtered.json` 的 candidates
+   数组后再跑 triage；打分阶段的资格与红线闸门仍按全文 JD 生效。
 4. 展示各桶清单，让用户可以即时调整明显误分。triage 只允许读取 title(+company)，
    绝不能把全文 JD 提前塞给它。
 5. 脚本超时或网络失败时，先检查 `state/` 中已产出的中间文件再决定从哪一步重试；
@@ -33,8 +43,8 @@
 > **(2) 资历分档**:title 优先,JD 年限/带队要求可上调。SENIOR → fit 封顶 `seniority_caps.senior`;LEAD+ → 封顶 `seniority_caps.lead_plus`;封顶岗**永不 generate**。junior/mid 且在用户轮辐内应得高分。
 > **(3) 0-100 打分**:真实重合(技能/领域/年限)加分;红线技术是**必备项**记 1 个 core red-line;用户没有且学不快的硬门槛降分。警惕 LinkedIn 残缺 stub 高估匹配——JD 太短时记 `jd_completeness=stub` 并在 rationale 注明"需投前核对完整 PD"。
 > **(4) 裁决**:generate 仅当 eligible 且 core red-line ≤1 且 (fit ≥ generate_threshold 或 (junior/mid 且 fit ≥ junior_generate_floor));其余 list-only / skip。`stretch` 调节生成边界:保守(或 allowed=false)→ 停用 junior_generate_floor,仅 fit ≥ generate_threshold 才 generate;适度 → 默认规则;激进 → junior_generate_floor 下调 5 分(下限 55)。若本轮 generate 岗数超过 `config.max_generate`,按 fit 降序保留前 max_generate 个,其余降为 list-only 并在 rationale 注明"超出本轮生成上限,可下轮补生成或手动指定"。
-> **(5) 推荐薪资**:JD 有区间→取区间内贴近用户期望值;无区间→按地区参考区间与档位给出(优先用户填写的 `config.region_salary_defaults`,否则读 `data/salary_regions.json` 中 `config.region` 对应条目),并注明含/不含 super 及币种。除 README 用的散文 `recommended_salary_note` 外,**必须同时输出结构化的 `recommended_salary_form`**(§5.3:单一整数 amount、币种、是否含 super;给不出单一数字则 amount=null)。
-> 每个职位输出 §5.3 的 JSON 一条。为省额度,**每批 5 个职位一次性打分**,禁用长篇思考。
+> **(5) 推荐薪资**:JD 有区间→取区间内贴近用户期望值;无区间→按地区参考区间与档位给出(优先用户填写的 `config.region_salary_defaults`,否则读 `data/salary_regions.json` 中 `config.region` 对应条目),并注明含/不含 super 及币种。除 README 用的散文 `recommended_salary_note` 外,**必须同时输出结构化的 `recommended_salary_form`**(单一整数 amount、币种、是否含 super;给不出单一数字则 amount=null)。若 `config.region_salary_defaults` 为空且 `data/salary_regions.json` 无 `config.region` 对应条目:amount=null,`recommended_salary_note` 与 README 薪资一节写"无参考区间,请自行调研",**禁止凭模型常识臆造区间或数字**。
+> 每个职位输出一条裁决 JSON(字段见下)。为省额度,**每批 5 个职位一次性打分**,禁用长篇思考。
 
 每条裁决必须包含：`jd_key`（`Company :: Title`）、company、title、url、apply_url、
 apply_type、source、source_id（若有）、fit、seniority_band、eligible、
@@ -86,8 +96,10 @@ python3 scripts/build_docs.py "<folder>/_content/cover.json" "<folder>/<Name> - 
 ## 5. 每岗 README 与汇总
 
 按 `templates/readme_template.md` 生成每岗 README，语言遵守 ui_language。必须包含：
-职位/公司概述；分数、理由和真实弱项；推荐薪资数字+币种+含/不含 super+散文理由；
-材料清单；常见表单答案（只取 facts/config）；提醒核对完整 JD。
+职位/公司概述；分数、理由和真实弱项；推荐薪资数字+币种+含/不含 super+散文理由
+（无参考来源时按打分规则 (5) 兜底写"无参考区间，请自行调研"）；材料清单；常见表单
+答案速查（只取 facts/config，与 apply.md 的表单速查同一口径，必含三项：**工作权利
+原文、通知期、如何得知职位=LinkedIn（固定答案）**）；提醒核对完整 JD。
 
 投递指引使用 `apply_url`（空则 url）的 hostname 匹配 `data/ats_map.json`：
 hostname 小写去端口，命中 `hostname == d` 或 `hostname.endswith("." + d)`，多条取

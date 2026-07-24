@@ -44,13 +44,66 @@
 目标和 stretch；每段经历列出已确认事实，并由你基于事实总结“适合投放的职位类型”。
 把该映射准备写入 `suits_archetypes`。必须等用户明确确认或修正后再落盘。
 
-确认后创建：
+确认后创建三个文件。**schema 以下面两份骨架为准，键名与嵌套结构不得增删改**：
 
-- `profile/facts.json`：严格遵守 SKILL.md 中 facts schema；`language_of_materials`
-  默认为 `en`。
-- `profile/config.json`：包含 days、ui_language、region、目标、薪资、公开来源和阈值；
-  根据红线生成只供**标题**机械分诊使用的 `redline_stack_regex`；将
-  `requires_no_citizenship_roles` 同步进 config 供 triage 使用。
+- `profile/facts.json`（`language_of_materials` 默认 `en`）：
+
+```json
+{
+  "basics": {
+    "full_name": "", "email": "", "phone": "", "address": "",
+    "links": {"linkedin": "", "github": "", "portfolio": ""},
+    "work_rights": "工作权利原文，如：临时毕业生签证，完整工作权利，无需担保",
+    "requires_no_citizenship_roles": true,
+    "notice_period": "", "locations": [],
+    "date_of_birth": null
+  },
+  "experiences": [
+    {
+      "id": "exp1", "role": "", "org": "", "start": "YYYY-MM", "end": "YYYY-MM|present",
+      "location": "", "facts": ["逐条经用户确认的成果，含具体数字"],
+      "tech": ["该段真实用过的技术"],
+      "suits_archetypes": ["此段适合投放的职位类型"]
+    }
+  ],
+  "education": [{"degree": "", "org": "", "start": "", "end": "", "notes": ""}],
+  "skills": {"expert": [], "working": [], "basic": []},
+  "publications_or_portfolio": [],
+  "red_lines": ["用户原话，供扫描器精确匹配"],
+  "phrasing_rules": ["如：R 和 Python 并列且 R 在前"],
+  "language_of_materials": "en"
+}
+```
+
+- `profile/config.json`（根据红线生成只供**标题**机械分诊使用的 `redline_stack_regex`；
+  将 `requires_no_citizenship_roles` 同步进 config 供 triage 使用）：
+
+```json
+{
+  "days": 7,
+  "ui_language": "zh",
+  "region": "AU-Melbourne",
+  "target_titles": [], "target_companies": [], "target_skills": [],
+  "salary_expectation": {"amount": 0, "currency": "AUD", "includes_super": true},
+  "platforms_preference": ["linkedin", "company_boards"],
+  "linkedin_location": "", "linkedin_keywords": [],
+  "linkedin_pages_per_keyword": 2,
+  "linkedin_junior_pass": true, "linkedin_junior_keywords_pages": 4,
+  "workday_sources": [{"name": "", "host": "", "tenant": "", "site": ""}],
+  "board_sources": [{"ats": "greenhouse|lever|ashby", "token": ""}],
+  "manual_candidates": [],
+  "stretch": {"allowed": true, "max_level": "适度"},
+  "requires_no_citizenship_roles": true,
+  "seniority_caps": {"senior": 45, "lead_plus": 38},
+  "generate_threshold": 70, "junior_generate_floor": 60,
+  "max_generate": 10,
+  "eligibility_regex": "citizen|permanent resident|security clearance|NV1|NV2|baseline",
+  "redline_stack_regex": "",
+  "region_salary_defaults": {"junior": "", "mid": ""},
+  "auto_submit": {}
+}
+```
+
 - `profile/digest.md`：确认摘要，不添加新事实。
 
 `auto_submit` 必须按以下安全默认值写入，不得在 `/setup` 中擅自开启：

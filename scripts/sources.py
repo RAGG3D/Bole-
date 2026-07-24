@@ -138,7 +138,9 @@ def relative_days(value: object) -> int | None:
     text = str(value or "").casefold()
     if "today" in text or "hour" in text or "minute" in text:
         return 0
-    match = re.search(r"(\d+)\s*(day|week|month)", text)
+    if "yesterday" in text:
+        return 1
+    match = re.search(r"(\d+)\s*\+?\s*(day|week|month)", text)
     if not match:
         return None
     amount = int(match.group(1))
@@ -429,14 +431,56 @@ def jd_url(url: str) -> dict[str, Any]:
 
 def unwrap_linkedin_redirect(url: str) -> str:
     value = html.unescape(url).replace("\\u0026", "&").replace("\\/", "/")
-    parsed = urllib.parse.urlparse(value)
-    if parsed.netloc.casefold().endswith("linkedin.com") and parsed.path.startswith(
-        "/safety/go"
-    ):
+    # 覆盖 /safety/go 与 /jobs/view/externalApply/... 等所有带 url= 参数的包裹形态；
+    # 至多解两层以防嵌套包裹。parse_qs 已完成一次百分号解码，不再二次 unquote。
+    for _ in range(2):
+        parsed = urllib.parse.urlparse(value)
+        if not parsed.netloc.casefold().endswith("linkedin.com"):
+            break
         query = urllib.parse.parse_qs(parsed.query)
-        if query.get("url"):
-            return urllib.parse.unquote(query["url"][0])
+        target = query.get("url", [None])[0]
+        if not target:
+            break
+        if not target.startswith(("http://", "https://")):
+            # 兜底：个别双重编码的包裹链接
+            target = urllib.parse.unquote(target)
+        value = target
     return value
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: N802
+        return None
+
+
+def resolve_redirect_once(url: str) -> str | None:
+    """对仍是跳转链的 apply 链接至多跟随一次重定向；失败或遇墙返回 None。"""
+    global _last_request_at
+    opener = urllib.request.build_opener(_NoRedirect)
+    request = urllib.request.Request(url, headers={"User-Agent": UA})
+    polite_wait()
+    try:
+        with opener.open(request, timeout=8) as response:
+            raw = response.read(65536)
+            final = response.geturl()
+    except urllib.error.HTTPError as exc:
+        _last_request_at = time.monotonic()
+        location = exc.headers.get("Location") if exc.headers else None
+        if 300 <= exc.code < 400 and location:
+            return urllib.parse.urljoin(url, location)
+        return None
+    except (urllib.error.URLError, TimeoutError, OSError):
+        _last_request_at = time.monotonic()
+        return None
+    _last_request_at = time.monotonic()
+    if BOT_WALL.search(raw.decode("utf-8", errors="replace")):
+        return None
+    return final
+
+
+def _is_linkedin_host(url: str) -> bool:
+    host = urllib.parse.urlparse(url).netloc.casefold()
+    return host.endswith("linkedin.com") or host.endswith("lnkd.in")
 
 
 def linkedin_apply_url(markup: str) -> str | None:
@@ -450,8 +494,15 @@ def linkedin_apply_url(markup: str) -> str | None:
             candidates.append(match.group(match.lastindex or 1))
     for candidate in candidates:
         candidate = unwrap_linkedin_redirect(candidate)
-        if candidate.startswith(("http://", "https://")):
-            return candidate
+        if not candidate.startswith(("http://", "https://")):
+            continue
+        if _is_linkedin_host(candidate):
+            # 解包后仍是跳转链：按规格至多跟随一次重定向取最终 ATS 地址
+            resolved = resolve_redirect_once(candidate)
+            if not resolved or _is_linkedin_host(resolved):
+                continue
+            candidate = resolved
+        return candidate
     return None
 
 
@@ -490,7 +541,7 @@ def jd_workday(host: str, tenant: str, site: str, path: str) -> dict[str, Any]:
         host = "https://" + host
     path = "/" + path.lstrip("/")
     endpoint = f"{host}/wday/cxs/{tenant.strip('/')}/{site.strip('/')}{path}"
-    raw, final_url = request_bytes(endpoint)
+    raw, _ = request_bytes(endpoint)
     payload = json.loads(raw)
     info = payload.get("jobPostingInfo", payload)
     text = html_text(str(info.get("jobDescription") or info.get("description") or ""))
@@ -499,9 +550,10 @@ def jd_workday(host: str, tenant: str, site: str, path: str) -> dict[str, Any]:
         or info.get("jobPostingUrl")
         or f"{host}/en-US/{site.strip('/')}{path}"
     )
+    # url 必须是人类可浏览的职位页(§6.3 direct 通道 url == apply_url)；cxs 端点只是内部抓取地址
     return jd_result(
         source="workday",
-        url=final_url,
+        url=external_url,
         text=text,
         title=info.get("title"),
         company=info.get("company"),

@@ -30,12 +30,13 @@ class Errors:
 
 
 def read_json(path: Path, errors: Errors) -> Any:
+    # 文件路径由 main 统一前缀，这里只报键路径，保持"文件:键路径: 消息"格式一致
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except OSError as exc:
-        errors.add(str(path), f"无法读取：{exc}")
+        errors.add("$", f"无法读取：{exc}")
     except json.JSONDecodeError as exc:
-        errors.add(str(path), f"JSON 语法错误：{exc}")
+        errors.add("$", f"JSON 语法错误：{exc}")
     return None
 
 
@@ -134,10 +135,15 @@ def main() -> int:
     args = parser.parse_args()
     all_errors: list[str] = []
     ats_errors = Errors()
-    lint_ats(read_json(args.ats_map, ats_errors), ats_errors)
+    ats_data = read_json(args.ats_map, ats_errors)
+    if not ats_errors.items:
+        # 读取失败时不再级联 schema 报错；顶层为合法 JSON null 时仍会正确报"必须是对象"
+        lint_ats(ats_data, ats_errors)
     all_errors.extend(f"{args.ats_map}:{item}" for item in ats_errors.items)
     salary_errors = Errors()
-    lint_salary(read_json(args.salary, salary_errors), salary_errors)
+    salary_data = read_json(args.salary, salary_errors)
+    if not salary_errors.items:
+        lint_salary(salary_data, salary_errors)
     all_errors.extend(f"{args.salary}:{item}" for item in salary_errors.items)
     if all_errors:
         for item in all_errors:

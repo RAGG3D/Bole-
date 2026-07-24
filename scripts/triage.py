@@ -28,6 +28,13 @@ def safe_regex(pattern: object, label: str) -> re.Pattern[str] | None:
         raise ValueError(f"{label} 不是有效正则：{exc}") from exc
 
 
+def bounded_term(term: str) -> str:
+    """短词（R/Go/C）必须整词命中；符号首尾词（C++/.NET）保持原样可命中。"""
+    left = r"(?<!\w)" if term[0].isalnum() else ""
+    right = r"(?!\w)" if term[-1].isalnum() else ""
+    return f"{left}{re.escape(term)}{right}"
+
+
 def positive_pattern(config: dict[str, Any]) -> re.Pattern[str] | None:
     terms: list[str] = []
     for key in ("target_titles", "target_skills"):
@@ -36,7 +43,7 @@ def positive_pattern(config: dict[str, Any]) -> re.Pattern[str] | None:
             terms.extend(str(value).strip() for value in values if str(value).strip())
     if not terms:
         return None
-    return re.compile("|".join(re.escape(term) for term in terms), re.IGNORECASE)
+    return re.compile("|".join(bounded_term(term) for term in terms), re.IGNORECASE)
 
 
 def user_requires_no_citizenship(config_path: Path, config: dict[str, Any]) -> bool:
@@ -50,12 +57,11 @@ def user_requires_no_citizenship(config_path: Path, config: dict[str, Any]) -> b
         return True
 
 
-def dual_band_title(title: str) -> bool:
+def dual_band_title(title: str, senior: re.Pattern[str]) -> bool:
     """例如 Data Analyst / Senior Data Analyst 不应在取 JD 前被封顶。"""
     if not re.search(r"[/|]", title):
         return False
     parts = re.split(r"\s*[/|]\s*", title)
-    senior = re.compile(DEFAULT_SENIOR, re.IGNORECASE)
     return any(senior.search(part) for part in parts) and any(
         part.strip() and not senior.search(part) for part in parts
     )
@@ -79,8 +85,12 @@ def bucket_candidates(
     )
     redline = safe_regex(config.get("redline_stack_regex", ""), "redline_stack_regex")
     positive = positive_pattern(config)
-    senior = re.compile(DEFAULT_SENIOR, re.IGNORECASE)
-    government = re.compile(DEFAULT_GOVERNMENT, re.IGNORECASE)
+    senior = safe_regex(config.get("senior_regex"), "senior_regex") or re.compile(
+        DEFAULT_SENIOR, re.IGNORECASE
+    )
+    government = safe_regex(
+        config.get("government_regex"), "government_regex"
+    ) or re.compile(DEFAULT_GOVERNMENT, re.IGNORECASE)
     restrict_eligibility = user_requires_no_citizenship(config_path, config)
     buckets: dict[str, list[dict[str, Any]]] = {
         "SKIP_eligibility": [],
@@ -98,18 +108,19 @@ def bucket_candidates(
         company = str(candidate.get("company") or "")
         haystack = f"{title} {company}".strip()
         positive_hit = bool(positive and positive.search(haystack))
-        if restrict_eligibility and (
+        if candidate.get("source") == "manual":
+            # 用户显式指定的岗不受任何 title 正则淘汰；资格与红线由打分阶段按全文 JD 核对
+            bucket = "SCORE"
+            reason = "用户手动指定，直接进入全文打分（资格与红线由打分阶段按全文 JD 核对）"
+        elif restrict_eligibility and (
             (eligibility and eligibility.search(haystack)) or government.search(haystack)
         ):
             bucket = "SKIP_eligibility"
             reason = "标题或公司命中资格/政府项目机械闸门"
-        elif redline and redline.search(haystack) and not positive_hit:
+        elif redline and redline.search(title) and not positive_hit:
             bucket = "SKIP_redline"
             reason = "标题命中红线技术且没有正向轮辐词"
-        elif candidate.get("source") == "manual":
-            bucket = "SCORE"
-            reason = "用户手动指定，直接进入全文打分"
-        elif senior.search(title) and not dual_band_title(title):
+        elif senior.search(title) and not dual_band_title(title, senior):
             bucket = "LIST_senior"
             reason = "标题命中资深/管理封顶词"
         elif positive_hit:

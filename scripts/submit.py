@@ -336,9 +336,12 @@ def apply_result(
     if result == "SUBMITTED":
         evidence = fields.get("evidence", "")
         if not evidence:
-            entry["status"] = "failed"
-            add_attempt(entry, action, "FAILED", "SUBMITTED 缺 evidence")
-            return "RESULT: FAILED | detail=SUBMITTED 缺 evidence"
+            # 代理声称已投但没带证据：不能当 failed（会放行重投造成双投），按未知处理走 verify
+            entry["status"] = "unknown"
+            add_attempt(
+                entry, action, "UNKNOWN", "代理声称 SUBMITTED 但缺 evidence，需 verify 权威核实"
+            )
+            return "RESULT: UNKNOWN"
         entry["status"] = "submitted"
         entry["evidence"] = evidence
     elif result == "NEED":
@@ -405,20 +408,35 @@ def base_entry(
         "ats": ats_name,
         "url": verdict["url"],
         "apply_url": verdict.get("apply_url"),
-        "status": "failed",
+        # 默认 unknown：桥接进程若中途死亡，台账停在 unknown 会被去重铁则拦住，必须先 verify
+        "status": "unknown",
         "evidence": "",
         "thread": thread,
         "attempts": [],
     }
 
 
-def replace_or_add(data: dict[str, Any], entry: dict[str, Any]) -> None:
+def require_auto_submit(config: dict[str, Any]) -> dict[str, Any]:
+    auto = config.get("auto_submit", {})
+    if not isinstance(auto, dict) or auto.get("enabled") is not True:
+        raise SubmitError(
+            "自动投递未开启；请先通过 /apply 开通并将 config.auto_submit.enabled 设为 true"
+        )
+    return auto
+
+
+def replace_or_add(data: dict[str, Any], entry: dict[str, Any]) -> dict[str, Any]:
+    """合并进台账并返回权威 dict；attempts 追加式保留历史，evidence 不被空值抹掉。"""
     previous = find_entry(data, entry["jd_key"])
     if previous is None:
         data["submissions"].append(entry)
-    else:
-        previous.clear()
-        previous.update(entry)
+        return entry
+    entry["attempts"] = previous.get("attempts", []) + entry.get("attempts", [])
+    if not entry.get("evidence"):
+        entry["evidence"] = previous.get("evidence", "")
+    previous.clear()
+    previous.update(entry)
+    return previous
 
 
 def run_job(
@@ -427,11 +445,7 @@ def run_job(
     verdict = load_verdict(job)
     config = load_object(config_path, "配置")
     facts = load_object(facts_path, "事实台账")
-    auto = config.get("auto_submit", {})
-    if not isinstance(auto, dict) or auto.get("enabled") is not True:
-        raise SubmitError(
-            "自动投递未开启；请先通过 /apply 开通并将 config.auto_submit.enabled 设为 true"
-        )
+    auto = require_auto_submit(config)
     data = load_submissions()
     previous = find_entry(data, verdict["jd_key"])
     if (
@@ -447,7 +461,7 @@ def run_job(
         entry = base_entry(verdict, "unknown", None)
         entry["status"] = "manual"
         add_attempt(entry, "submit", "FAILED", "JD 为 stub，投前防线拦下")
-        replace_or_add(data, entry)
+        entry = replace_or_add(data, entry)
         save_submissions(data)
         raise SubmitError("JD 仍为 stub；必须先抓完整 JD 并重跑资格/红线裁决")
     target_url = str(verdict.get("apply_url") or verdict.get("url"))
@@ -456,7 +470,7 @@ def run_job(
         entry = base_entry(verdict, "linkedin_easy_apply", None)
         entry["status"] = "manual"
         add_attempt(entry, "submit", "FAILED", "LinkedIn 岗位页禁止自动投递")
-        replace_or_add(data, entry)
+        entry = replace_or_add(data, entry)
         save_submissions(data)
         raise SubmitError("绝不把 linkedin.com 岗位页交给自动投递；请转手动")
     mapping = load_object(ats_map_path(), "ATS 能力地图")
@@ -465,7 +479,7 @@ def run_job(
         entry = base_entry(verdict, "unknown", None)
         entry["status"] = "manual"
         add_attempt(entry, "submit", "FAILED", "ATS 域名未收录，转手动")
-        replace_or_add(data, entry)
+        entry = replace_or_add(data, entry)
         save_submissions(data)
         raise SubmitError("ATS 域名未收录，已记入手动队列")
     ats_name, ats_entry = matched
@@ -474,19 +488,25 @@ def run_job(
         entry = base_entry(verdict, ats_name, None)
         entry["status"] = "manual"
         add_attempt(entry, "submit", "FAILED", "ATS 不允许自动提交，转手动")
-        replace_or_add(data, entry)
+        entry = replace_or_add(data, entry)
         save_submissions(data)
         raise SubmitError(f"{ats_name} 不在自动投递路由中，已记入手动队列")
     cv, cover = materials(job)
     ensure_no_redlines(job, facts)
     thread = new_thread(verdict["jd_key"])
     entry = base_entry(verdict, ats_name, thread)
-    replace_or_add(data, entry)
+    entry = replace_or_add(data, entry)
+    # 先以 status=unknown 落盘：进程若在投递会话中途死亡，去重铁则会拦住下一次 run，必须先 verify
     save_submissions(data)
     message = task_message(verdict, config, facts, ats_name, ats_entry, cv, cover)
-    kind, payload = invoke_openclaw(
-        message, thread=thread, timeout=float(auto.get("submit_timeout_s", 600))
-    )
+    try:
+        kind, payload = invoke_openclaw(
+            message, thread=thread, timeout=float(auto.get("submit_timeout_s", 600))
+        )
+    except (KeyboardInterrupt, SystemExit):
+        add_attempt(entry, "submit", "UNKNOWN", "桥接进程被中断；请先 submit.py verify 再决定续跑")
+        save_submissions(data)
+        raise
     line = apply_result(entry, "submit", kind, payload)
     save_submissions(data)
     print(line)
@@ -495,6 +515,9 @@ def run_job(
 
 def continue_job(job: Path, answer: str | None) -> int:
     verdict = load_verdict(job)
+    # 与 run 同一道闸门：用户中途关掉开关后，续跑同样不许再碰 OpenClaw（verify 只读不受限）
+    config = load_object(DEFAULT_CONFIG, "配置")
+    auto = require_auto_submit(config)
     data = load_submissions()
     entry = find_entry(data, verdict["jd_key"])
     if not entry or not entry.get("thread"):
@@ -529,8 +552,7 @@ def continue_job(job: Path, answer: str | None) -> int:
             "请从当前进度继续完成本次投递，不要重复已完成的步骤；仍遵守原任务消息中的"
             "行为红线，最后必须以恰好一行 RESULT: 协议行结束"
         )
-    config = load_object(DEFAULT_CONFIG, "配置")
-    timeout = float(config.get("auto_submit", {}).get("submit_timeout_s", 600))
+    timeout = float(auto.get("submit_timeout_s", 600))
     kind, payload = invoke_openclaw(message, thread=entry["thread"], timeout=timeout)
     line = apply_result(entry, "continue", kind, payload)
     save_submissions(data)

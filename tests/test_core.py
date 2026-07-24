@@ -112,6 +112,67 @@ class CoreFlowTests(unittest.TestCase):
             )
             self.assertEqual(len(buckets["SCORE"]), 2)
 
+    def run_triage(self, candidates: list[dict], config: dict) -> dict:
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            candidates_path = base / "candidates.json"
+            config_path = base / "config.json"
+            output_path = base / "buckets.json"
+            candidates_path.write_text(
+                json.dumps({"generated": "2026-07-25", "days": 7,
+                            "count": len(candidates), "candidates": candidates}),
+                encoding="utf-8",
+            )
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            result = run_script(
+                "triage.py", "--candidates", candidates_path,
+                "--config", config_path, "--out", output_path,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(output_path.read_text(encoding="utf-8"))["buckets"]
+
+    def test_triage_manual_bypasses_title_gates(self) -> None:
+        buckets = self.run_triage(
+            [{"source": "manual", "channel": "url", "title": "Citizen Data Scientist",
+              "company": "Example", "id": "", "url": "https://example.test/c"}],
+            {"target_titles": [], "target_skills": [],
+             "requires_no_citizenship_roles": True},
+        )
+        self.assertEqual(
+            [item["title"] for item in buckets["SCORE"]], ["Citizen Data Scientist"]
+        )
+
+    def test_triage_short_skill_needs_word_boundary(self) -> None:
+        buckets = self.run_triage(
+            [{"source": "board", "channel": "company_boards", "title": "Farm Hand",
+              "company": "Example Farms", "id": "9", "url": "https://example.test/9"}],
+            {"target_titles": [], "target_skills": ["R"],
+             "requires_no_citizenship_roles": True},
+        )
+        self.assertEqual(len(buckets["SCORE"]), 0, "短技能词必须整词命中")
+        self.assertEqual(len(buckets["LIST_other"]), 1)
+
+    def test_triage_redline_only_matches_title(self) -> None:
+        buckets = self.run_triage(
+            [{"source": "board", "channel": "company_boards", "title": "Data Analyst",
+              "company": "DevOps Institute", "id": "8", "url": "https://example.test/8"}],
+            {"target_titles": [], "target_skills": [],
+             "redline_stack_regex": "DevOps",
+             "requires_no_citizenship_roles": True},
+        )
+        self.assertEqual(len(buckets["SKIP_redline"]), 0, "红线只扫 title，不扫公司名")
+        self.assertEqual(len(buckets["LIST_other"]), 1)
+
+    def test_relative_days_parses_yesterday_and_open_ended(self) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "bole_sources", ROOT / "scripts/sources.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        self.assertEqual(module.relative_days("Posted Yesterday"), 1)
+        self.assertEqual(module.relative_days("Posted 30+ Days Ago"), 30)
+
     def test_redline_blocks_and_clean_content_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)

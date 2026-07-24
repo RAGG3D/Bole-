@@ -8,6 +8,7 @@ import json
 import re
 import sys
 import unicodedata
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,25 @@ def normalize(value: object) -> str:
     return " ".join(text.split())
 
 
+def url_key(value: object) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    parsed = urllib.parse.urlsplit(text)
+    if parsed.scheme and parsed.netloc:
+        # 轻量规范化：小写 host、去 fragment、去尾斜杠；query 保留以免误合并同 ATS 不同职位
+        return urllib.parse.urlunsplit(
+            (
+                parsed.scheme.casefold(),
+                parsed.netloc.casefold(),
+                parsed.path.rstrip("/"),
+                parsed.query,
+                "",
+            )
+        )
+    return text
+
+
 def candidate_keys(candidate: dict[str, Any]) -> set[str]:
     keys: set[str] = set()
     job_id = str(candidate.get("id") or "").strip()
@@ -31,6 +51,11 @@ def candidate_keys(candidate: dict[str, Any]) -> set[str]:
     title = normalize(candidate.get("title"))
     if company and title:
         keys.add(f"name:{company}|{title}")
+    if not keys:
+        # manual/url 通道抓不到公司/标题时的兜底键，防止同一 URL 每轮都算新职位
+        url = url_key(candidate.get("url"))
+        if url:
+            keys.add(f"url:{url}")
     return keys
 
 
@@ -97,6 +122,12 @@ def commit_candidates(source: Path, ledger_path: Path) -> int:
         if not isinstance(record, dict):
             continue
         keys = record.get("keys", [])
+        if not keys:
+            # 历史无键记录现场补键（记录字段与候选同名），收敛既往堆积的同 URL 重复
+            backfilled = sorted(candidate_keys(record))
+            if backfilled:
+                record["keys"] = backfilled
+                keys = backfilled
         if keys:
             for key in keys:
                 existing[str(key)] = record

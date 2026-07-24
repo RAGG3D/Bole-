@@ -256,6 +256,30 @@ class SubmitLoopTests(unittest.TestCase):
         self.assertNotEqual(refused.returncode, 0)
         self.assertEqual(len(self.calls()), 2)
 
+    def test_submitted_without_evidence_becomes_unknown(self) -> None:
+        self.script_path.write_text("RESULT: SUBMITTED\n", encoding="utf-8")
+        result = self.run_new()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "RESULT: UNKNOWN")
+        entry = self.ledger_entry()
+        self.assertEqual(entry["status"], "unknown", "缺证据不得当 failed 放行重投")
+        duplicate = self.run_new()
+        self.assertNotEqual(duplicate.returncode, 0)
+        self.assertEqual(len(self.calls()), 1)
+
+    def test_disabled_switch_blocks_continue_midway(self) -> None:
+        self.script_path.write_text(
+            "RESULT: NEED | what=otp | question=Enter code\n", encoding="utf-8"
+        )
+        first = self.run_new()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.config["auto_submit"]["enabled"] = False
+        self.config_path.write_text(json.dumps(self.config), encoding="utf-8")
+        refused = self.command("continue", "--job", self.job, "--answer", "123456")
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("自动投递未开启", refused.stderr)
+        self.assertEqual(len(self.calls()), 1, "开关关闭后 continue 不得触碰 OpenClaw")
+
 
 if __name__ == "__main__":
     unittest.main()

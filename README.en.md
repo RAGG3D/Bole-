@@ -2,215 +2,161 @@
 
 [中文](README.md)
 
-> **Fine horses are common; a good judge is rare—now there is one.**
+> **Fine horses are common; a good judge of them is rare—now there is one.**
 
-Bole takes its name from the legendary Chinese judge of horses. It is a
-beginner-friendly Claude Code skill pack that builds a confirmed facts ledger,
-finds jobs, reads full job descriptions, scores honest fit, and creates a
-separate application pack for every suitable role. The goal is not mass
-application; it is truthful, specific tailoring for each job.
+Bole is an open-source job-application assistant that lives inside [Claude Code](https://claude.com/claude-code): it discovers roles, scores honest fit, and tailors a CV, cover letter, and application guide to every JD—based strictly on **experience you have confirmed**. No mass applying. No fabrication.
 
-## 1. What It Is
+---
 
-Bole runs locally inside Claude Code. It is not a website, cloud service, or
-standalone backend. Claude handles interviews, understanding, scoring, and
-writing. Standard-library Python scripts provide repeatable discovery,
-deduplication, mechanical triage, red-line scanning, PDF generation, ATS
-routing, and submission records.
+## ⚡ Quick Start (Three Steps)
 
-The repository ships all capability layers together:
+**Prerequisites**: Python ≥ 3.10; an installed and authenticated [Claude Code CLI](https://claude.com/claude-code) (your own subscription, any model); Git. Chrome/Chromium/Edge is recommended for automatic PDF printing—without one, Bole still generates HTML you can print with Ctrl+P.
 
-- v0.1: `/doctor`, `/setup`, and `/scan` for profiling, discovery, scoring, and
-  manual application packs;
-- v0.2: optional `/apply`, sending eligible ATS applications sequentially via
-  OpenClaw;
-- v0.3: community ATS data, regional salary starting points, English docs, and
-  offline CI.
-
-Bole does not provide a web UI, upload user data, use paid APIs, take
-assessments, or promise interviews.
-
-## 2. Safety and Honesty
-
-`profile/facts.json` is the only source for application content and form
-answers. Unconfirmed skills, tenure, metrics, and achievements are forbidden.
-A `red_lines` match blocks PDF output. Bot walls, CAPTCHAs, online assessments,
-video interviews, personality tests, and OAuth-only registration stop and move
-to the manual queue. Bole never stores or enters passwords. A user may relay an
-OTP once; it is discarded and never written to disk.
-
-Auto-submit is off by default and remains governed by `final_confirm`. A timeout
-is not failure: Bole must verify read-only before any continuation and never
-blindly resubmit. The script rejects a second run when the same role is already
-`submitted` or `unknown`.
-
-## 3. Requirements and Installation
-
-Required:
-
-- Python 3.10 or later;
-- an installed and authenticated Claude Code CLI (any model);
-- Git.
-
-Chrome, Chromium, or Edge is recommended for automatic PDF printing. Without
-one, Bole still generates HTML. OpenClaw is the **only optional external
-dependency** and is used solely by `/apply`; profiling, scanning, and document
-generation do not need it.
-
-Linux, macOS, or WSL:
-
-```sh
+```bash
 git clone https://github.com/RAGG3D/Bole-.git bole
 cd bole
-bash install.sh
+bash install.sh   # checks the environment and gives guidance; never installs anything
 claude
 ```
 
-`install.sh` only reports checks and guidance; it installs nothing. Native
-Windows users can check `python --version`, `claude --version`, and Chrome/Edge
-manually in PowerShell, then run `claude` in the repository, or use WSL2. Python
-paths use `pathlib`.
+Inside Claude Code, run three commands in order:
 
-## 4. Quick Start
+| Step | Command | What it does |
+|---|---|---|
+| 1 | `/doctor` | Environment check: item by item, with fix guidance—**never silently installs anything** |
+| 2 | `/setup` | Interview-style profiling: five short rounds covering experience/skills/red lines/targets, each fact confirmed before entering your local "facts ledger" |
+| 3 | `/scan` | Discover jobs → score and tier → generate a tailored CV/cover-letter PDF plus a per-job application README for every match |
 
-Inside Claude Code at the repository root, run:
+Then open the `Applications/` folder: one folder per matching job, containing the full JD, tailored CV PDF, tailored cover letter PDF, and a README that tells you **how to apply and what salary to enter**. Just follow it.
 
-```text
-/doctor
-/setup
-/scan
+The fourth command, `/apply` (auto-submit), is **off by default**; running it with the switch off only explains activation and touches no network. See "Auto-submit" below.
+
+---
+
+## What It Is
+
+**In one sentence: a Claude Code skill pack (skill repo)—not a website, cloud service, or standalone backend.** You clone the repository and run `claude` inside it: Claude handles interviews, understanding, scoring, and writing; the repository's standard-library Python scripts provide repeatable discovery, deduplication, mechanical triage, red-line scanning, PDF generation, ATS routing, and submission records. Your data stays on your own machine.
+
+Three capability layers ship together:
+
+- **v0.1**: `/doctor`, `/setup`, `/scan`—profiling, discovery, scoring, and manual application packs;
+- **v0.2**: optional `/apply`—sequential auto-submission via OpenClaw, only to ATS platforms the capability map allows;
+- **v0.3**: community-maintained ATS map, regional salary starting points, English docs, and offline CI.
+
+### The Name
+
+"Only when there is a Bole does a thousand-li horse get found. Thousand-li horses are common; a Bole is rare." The reality of the job market: capable candidates abound, but a resume gets six seconds of attention. Bole appraises each JD like the legendary judge of horses—reading what it truly asks for, then bringing your **genuinely held** matching strengths to the front.
+
+### Three Founding Principles
+
+1. **The facts ledger is the only source of truth**. Facts you confirm item by item during `/setup`—experience, skills, quantified results—form your local `profile/facts.json`. All generated materials and form answers may reference only ledger facts: **fabrication is structurally impossible**, and a deterministic scanner gate-keeps before any PDF is produced.
+2. **Red lines**. Profiling explicitly asks "which skills do you NOT have and must never appear?" (e.g., never used Power BI, no wet-lab work). If a red-line term appears in generated material, the scanner refuses to produce the PDF.
+3. **The honest gap sentence**. For weaker-fit roles, the cover letter contains **exactly one** calm, unapologetic statement of the real gap, immediately followed by your transferable strengths—no false perfection, no self-deprecation.
+
+## What It Is Not
+
+- ❌ Not a mass-application bot—each run only generates materials for high-fit roles, with a cap;
+- ❌ No "embellishing" or inventing experience—see the ledger and red lines above;
+- ❌ No CAPTCHA solving, no bot-wall evasion—walls always route to the manual queue, no exceptions;
+- ❌ No taking online assessments/video interviews/personality tests on your behalf;
+- ❌ Never touches your passwords—all login/registration is done by you in the browser;
+- ❌ No promise of interviews or offers.
+
+## How It Works
+
+```
+Discover jobs via free public channels (LinkedIn guest API / Workday / Greenhouse / Lever / Ashby / pasted JD)
+        │
+        ▼
+Ledger dedup → mechanical triage: regex bucketing filters out senior/ineligible/red-line roles first
+        │                                            — what it saves is your token budget
+        ▼
+Claude reads each full JD and scores (0-100): eligibility gate → seniority cap → red-line check → tiering
+        │                         Tier 1 (80+) / Tier 2 (70-79) / Tier 3 (<70)
+        ▼
+Generate materials (ledger facts only) → red-line scan (no pass, no PDF) → local browser prints PDF (zero heavy deps)
+        │
+        ▼
+Per-job README: score & rationale, recommended salary (number + currency + reasoning), known ATS quirks, form answers
 ```
 
-`/doctor` checks the environment. `/setup` uses five short interview rounds to
-build a local facts ledger. `/scan` performs token-saving mechanical triage,
-then reads full JDs and scores five at a time before generating documents. To
-use optional auto-submit later, run:
+Hard rules worth knowing: senior roles (Senior/Lead+) are score-capped and **never generated**—applying to the wrong roles wastes everyone's time; roles requiring citizenship/PR/clearance you lack are skipped outright; a JD under 800 characters is flagged as a stub and **can never be auto-submitted directly**; the generation boundary is set jointly by fit score, core red lines, stretch tolerance, and the `max_generate` cap.
 
-```text
-/apply
-```
+Each generated job folder contains: `JD.txt`, `verdict.json` (the scoring verdict), the tailored CV, tailored cover letter, application README, and `_content/` source JSON. Recommended salary is only a regional/job-specific starting point; with no evidence Bole says "no reference range" instead of inventing a number.
 
-When the switch is off, the first `/apply` only explains activation. It does not
-call OpenClaw or the network. Read [Auto-submit](#9-optional-auto-submit) first.
+## Auto-submit (v0.2, Off by Default)
 
-## 5. Facts Ledger and Configuration
-
-After your confirmation, `/setup` creates:
-
-- `profile/facts.json`: basics, confirmed experience facts, skills, education,
-  portfolio, red lines, and phrasing rules;
-- `profile/config.json`: targets, region, salary expectations, public sources,
-  thresholds, and disabled-by-default auto-submit;
-- `profile/digest.md`: a concise summary and role archetypes for each
-  experience.
-
-All three are gitignored. Never copy real user data into `examples/`, issues, or
-pull requests. `config.ui_language` controls conversation, reports, and each
-job README. Document language is separately controlled by
-`facts.language_of_materials`.
-
-## 6. Job Sources
-
-Bole uses only free, public, unauthenticated sources:
-
-- LinkedIn guest job lists and details;
-- Workday cxs JSON;
-- public Greenhouse, Lever, and Ashby boards;
-- user-supplied direct company URLs;
-- pasted job descriptions.
-
-Requests use a custom user agent, wait at least two seconds, retry a first 429
-once after eight seconds, carry no cookies, and never bypass bot protection.
-SEEK has no suitable free public interface for this project, so it always uses
-pasted JDs and manual submission. Offline or bot-walled manual URLs stay in a
-manual queue instead of disappearing.
-Use of LinkedIn's guest interface may still be governed by platform terms.
-Evaluate and follow the rules that apply to you; Bole never attempts to evade
-access controls.
-
-The `id + normalized company/title` keys can still miss duplicates after a
-company rename or dual branding; check manually before submission.
-`platforms_preference` only changes report ordering and cannot enable an
-unavailable channel.
-
-## 7. Scoring and Application Packs
-
-`/scan` runs discover → ledger.filter → triage → full JD → five-job scoring
-batches → tiered archive → red-line scan → HTML/PDF → per-job README → scan
-index. Ineligible roles are skipped. Senior and leadership roles are capped and
-never generated. Score, core red lines, stretch, and `max_generate` jointly set
-the generation boundary. A JD under 800 characters is a stub and can never be
-auto-submitted directly.
-
-Generated jobs appear under:
-
-```text
-Applications/
-├── Tier 1 (80+)/
-├── Tier 2 (70-79)/
-└── Tier 3 (under 70)/
-```
-
-Each folder contains `JD.txt`, `verdict.json`, a tailored CV, a tailored cover
-letter, README, and `_content/` JSON. The README explains score, honest gaps,
-recommended salary, ATS quirks, materials, and manual steps. Salary is only a
-regional/job-specific starting point. With no evidence, Bole says there is no
-reference range instead of inventing a number.
-
-## 8. PDF and Graceful Fallback
-
-Documents pass a deterministic red-line scan before repository templates render
-HTML. The script detects Chrome, Chromium, and Edge and prints A4 using
-`@page`; it attempts to fit a CV to two pages and a cover letter to one. If no
-browser exists or printing fails, the command still succeeds, keeps matching
-HTML, and tells the user to open it and save as PDF with Ctrl+P.
-
-Try the offline pieces independently:
-
-```sh
-python3 scripts/sources.py jd --source paste --file examples/demo_jds/jd1.txt
-python3 scripts/redline_scan.py --facts examples/demo_facts.json --content path/to/content
-python3 scripts/build_docs.py path/to/cv.json output.pdf --fit-pages 2
-```
-
-## 9. Optional Auto-submit
-
-OpenClaw is free and open source and uses the user's own local gateway and
-browser profile. The user must personally log into every ATS. Each Workday
-company tenant has a separate account, so a first or later application may
-require personal registration or login; this is expected. Core Bole remains
-complete without OpenClaw.
+`/apply` can hand roles on "clean ATS" platforms (field-tested: Greenhouse / Ashby / HiBob / Oracle / Workday) to the [OpenClaw](https://www.npmjs.com/package/openclaw) browser agent for automatic submission. OpenClaw is free, open source, uses your own Claude subscription, and is Bole's **only optional external dependency**—without it, profiling/scanning/document generation remain fully functional.
 
 If you choose to enable it:
 
-1. install Node ≥18 and run `npm install -g openclaw` yourself;
-2. run `/doctor`, follow its `openclaw gateway run` guidance, and personally log
-   into target sites;
-3. after understanding confirmation modes, set
-   `config.auto_submit.enabled` to `true`;
-4. run `/apply` and confirm the list under `per_run` (default) or `per_job`.
+1. Install Node ≥ 18 and `npm install -g openclaw` yourself;
+2. Run `/doctor`, follow its `openclaw gateway run` guidance, and personally log into the target job sites;
+3. After understanding the confirmation modes, set `config.auto_submit.enabled` to `true`;
+4. Run `/apply` and approve the list under `per_run` (default, once per round) or `per_job` (per submission).
 
-Only platforms with `auto_submit=true` in `data/ats_map.json` and present in
-`allowed_ats` are routed to automation. Everything else remains a manual pack.
-Applications are strictly sequential, at least 30 seconds apart, and limited to
-five per run. NEED answers come from the facts ledger; users handle login and
-password steps personally; CAPTCHA, assessment, OAuth, and bot-wall events
-block immediately. After a timeout, `submit.py verify` opens a new read-only
-session. UNKNOWN is never automatically resubmitted.
+Safety design:
 
-`--force` bypasses duplicate protection and can double-submit. Use it only
-after manual verification.
+- Only platforms with `auto_submit=true` in `data/ats_map.json` **and** present in your `allowed_ats` whitelist are automated; everything else stays a manual pack;
+- Strictly sequential submission, at least 30 seconds apart, with a per-run cap;
+- Login/registration/password steps are done by **you** in the browser—Bole never receives, stores, or types any password; the sole exception is an email one-time code (OTP) you relay, discarded after use (each Workday company tenant is a separate account, so first or repeat applications may need you to log in first—by design, not a fault);
+- **Timeout ≠ failure**: the agent may have submitted and lost its reply. After a timeout Bole verifies read-only first; `UNKNOWN` status is **never auto-resubmitted**; a role already `submitted` or `unknown` is refused outright (`--force` overrides but can double-submit—use only after manual verification);
+- CAPTCHA, online assessments, video interviews, OAuth-only registration → blocked immediately, routed to manual.
 
-## 10. Privacy and Local Files
+## Privacy & Security
 
-Bole sends no telemetry. `profile/`, `Applications/`, and `state/` stay local
-and are gitignored. Scripts write no user data elsewhere, except an output path
-the user explicitly provides to the document builder. Public fetches carry no
-login cookies. OpenClaw login state remains in its browser profile; Bole does
-not read passwords. Back up local files yourself and inspect terminal output
-before sharing it.
+- Your profile (`profile/`), generated materials (`Applications/`), and run state (`state/`) stay **local only**, gitignored, never committed;
+- No telemetry;
+- Unauthenticated fetching follows politeness rules: custom UA, ≥ 2s between requests, 429 backoff, never carries cookies; use of LinkedIn's guest interface may still be governed by platform terms—Bole rate-limits and prefers direct company ATS by default, evaluate for yourself (see Disclaimer);
+- OpenClaw's login state lives in its own browser profile; Bole does not read it.
 
-## 11. Community Contributions
+## Supported Job Sources
+
+| Source | Method | Notes |
+|---|---|---|
+| LinkedIn | Guest API, no login | Junior-role recall boost; stub JDs flagged; external ATS apply links resolved |
+| Workday | Public JSON | Configure target company sites in config |
+| Greenhouse / Lever / Ashby | Public board JSON | Configure company tokens in config |
+| Company career pages | URL fetch | Bot-wall detection; walled URLs go to the manual queue (never lost) |
+| SEEK | Pasted JD | No free interface; paste it in, the rest of the flow is identical |
+
+Note: after a company rename or dual branding, dual-key dedup can still miss duplicates—check manually before applying.
+
+## FAQ
+
+**Does it cost money?** Zero paid dependencies. You only spend your own Claude subscription budget; scoring defaults to a token-saving mode (mechanical triage first, then batches of five).
+
+**Must I install OpenClaw?** No. Only the optional `/apply` uses it; the core application-pack workflow doesn't depend on it.
+
+**Will it fabricate my experience?** No—structurally: materials may only reference your confirmed facts ledger, and the red-line scan blocks any PDF otherwise.
+
+**Can I use an existing resume?** Yes, as interview evidence for `/setup`. Claude extracts and reads back each fact and number; only confirmed items enter the ledger.
+
+**Why does a weaker-fit cover letter include one gap sentence?** To set expectations honestly—immediately followed by transferable strengths; no apology, no self-deprecation, no invention.
+
+**Can I click submit again after a timeout?** No. The agent may have already submitted and lost the reply. Verify and check the confirmation email first to avoid duplicates.
+
+**Why not scrape SEEK?** SEEK has no free unauthenticated interface suitable for this project (commonly 403). Copy the JD text and paste it in.
+
+**Does a missing browser break it?** No. Bole keeps the complete HTML; open it in a browser and Ctrl+P to save as PDF.
+
+**Australia only?** No. Defaults use Melbourne as the example; region, keywords, and salary reference ranges (AU/US/UK/SG built in) are all configurable.
+
+**Windows?** Linux / macOS / Windows supported (WSL2 recommended; native Windows works after manually confirming the environment per the README).
+
+**English version?** You are reading it; UI language is controlled by `config.ui_language`. Generated CVs/cover letters default to English anyway (configurable).
+
+## Roadmap
+
+| Version | Scope | Status |
+|---|---|---|
+| v0.1 | /doctor checkup + /setup interview profiling + /scan scoring & "manual application packs" | ✅ Shipped (tag `v0.1`) |
+| v0.2 | /apply via OpenClaw: clean-ATS auto-submit + escalation loop + verify-after-timeout | ✅ Shipped (tag `v0.2`) |
+| v0.3 | Community: ats_map PR mechanism + regional salaries + English docs + offline CI | ✅ Shipped (tag `v0.3`) |
+
+Future work stays local-first, zero-paid-dependency, fact-constrained, and human-recoverable.
+
+## Contributing
 
 Run the fully offline checks first:
 
@@ -219,60 +165,16 @@ python3 scripts/ats_lint.py
 python3 -m unittest discover tests
 ```
 
-Anonymous field reports can update ATS domains, `auto_submit`, and `quirks`, or
-improve regional salary entries. Domains must be lowercase and bare. Never
-submit PII such as names, email, phone, address, resume content, or confirmation
-IDs. See [CONTRIBUTING.md](CONTRIBUTING.md) and the bilingual issue/PR
-templates.
+The most valuable contribution is **field-tested ATS experience**: which platforms submit cleanly, which have quirks—open an issue or PR against `data/ats_map.json` (domains must be lowercase and bare; lint and offline CI gate every change). Regional salary calibration is equally welcome. **Never submit PII** (names, email, phone, resume content, confirmation IDs) in issues or PRs. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 12. FAQ
+## Disclaimer
 
-**Does Bole cost money?**
+- Verify all job judgments, materials, and salary guidance yourself before applying; application actions and outcomes are the user's responsibility;
+- Users must comply with each recruitment platform's terms and applicable privacy and employment laws;
+- Salary reference ranges are community data—starting points only; local market reality prevails;
+- Auto-submit is off by default; even when enabled it remains constrained by confirmation policy and safety gates, and always honors three iron rules: never take assessments, never touch credentials, walls go to manual;
+- The software is provided "as is", with no guarantee of complete job data, error-free materials, successful submission, interviews, or employment.
 
-The repository uses no paid API or SaaS. You still use your own Claude Code
-subscription. OpenClaw is free and open source and is only needed if you choose
-auto-submit.
+## License
 
-**Must I install OpenClaw?**
-
-No. Only optional `/apply` uses it. The central application-pack workflow does
-not depend on OpenClaw.
-
-**Why not scrape SEEK directly?**
-
-SEEK has no suitable zero-cost public unauthenticated interface and commonly
-returns 403. Save the JD as text and use the paste channel.
-
-**Does a missing browser break Bole?**
-
-No. Bole keeps complete HTML that you can print manually with Ctrl+P.
-
-**Why does a weaker-fit cover letter include one gap sentence?**
-
-It sets expectations honestly, then immediately explains transferable
-strengths—without apology, self-deprecation, or invention.
-
-**Can I click submit again after a timeout?**
-
-No. The agent may have submitted and lost its reply. Verify and check
-confirmation email first to avoid duplicates.
-
-**Can I use an existing resume?**
-
-Yes, as interview evidence during `/setup`. Claude reads back each fact and
-metric, and only confirmed items enter the ledger.
-
-## 13. Disclaimer, Roadmap, and License
-
-Users must verify Bole's job decisions, materials, and salary guidance and are
-responsible for recruitment-platform terms and applicable privacy and
-employment laws. Auto-submit is disabled by default and remains constrained by
-confirmation and safety gates when enabled. The software is provided “as is”
-without guarantees of complete job data, error-free materials, successful
-submission, interview, or employment.
-
-The repository ships v0.1, v0.2, and v0.3 as capability layers together and
-marks them with matching Git tags. Future work should remain local-first,
-zero-paid-dependency, fact-constrained, and human-recoverable.
-
-Licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
