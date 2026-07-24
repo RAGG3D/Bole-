@@ -1,0 +1,16 @@
+# Bole 只在本地保存的用户数据
+profile/
+Applications/
+state/
+
+# Python / editor / OS
+*.pyc
+__pycache__/
+.pytest_cache/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# PDF 构建的临时文件
+*.tmp.pdf

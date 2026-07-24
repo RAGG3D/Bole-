@@ -1,0 +1,14 @@
+Junior Data Analyst
+Example Retail — Melbourne
+
+We are looking for a junior data analyst to join our reporting team. You will
+clean and validate operational datasets, write SQL queries, automate recurring
+reports with R or Python, document definitions, and explain findings to
+non-technical stakeholders.
+
+You have practical SQL skills, experience with either R or Python, careful
+attention to data quality, and clear written communication. Graduate projects
+and internships are welcome. Australian working rights are required; security
+clearance is not required.
+
+Salary: AUD 82,000–92,000 including super.

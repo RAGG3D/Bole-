@@ -1,0 +1,69 @@
+{
+  "basics": {
+    "full_name": "李示例",
+    "email": "li.example@example.com",
+    "phone": "+61 000 000 000",
+    "address": "Melbourne, VIC",
+    "links": {
+      "linkedin": "https://example.com/profiles/li-example",
+      "github": "https://github.com/li-example",
+      "portfolio": ""
+    },
+    "work_rights": "澳大利亚毕业生签证，完整工作权利，无需雇主担保",
+    "requires_no_citizenship_roles": true,
+    "notice_period": "两周",
+    "locations": ["Melbourne", "Remote"],
+    "date_of_birth": null
+  },
+  "experiences": [
+    {
+      "id": "exp1",
+      "role": "Data Analyst",
+      "org": "Example Health",
+      "start": "2024-02",
+      "end": "present",
+      "location": "Melbourne",
+      "facts": [
+        "使用 R 和 Python 自动化每周数据质量报告，将准备时间从 6 小时缩短到 90 分钟",
+        "用 SQL 清理并核对 120,000 条匿名化记录",
+        "与三名业务负责人共同定义并维护 12 个数据质量指标"
+      ],
+      "tech": ["R", "Python", "SQL", "Git"],
+      "suits_archetypes": ["Data Analyst", "Reporting Analyst", "Junior Data Scientist"]
+    },
+    {
+      "id": "exp2",
+      "role": "Research Assistant",
+      "org": "Example University",
+      "start": "2023-03",
+      "end": "2023-12",
+      "location": "Melbourne",
+      "facts": [
+        "整理公开健康数据集并复现两项统计分析",
+        "为研究团队编写可复用的数据字典和分析说明"
+      ],
+      "tech": ["R", "Excel"],
+      "suits_archetypes": ["Research Data Analyst", "Graduate Analyst"]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Master of Data Science",
+      "org": "Example University",
+      "start": "2022",
+      "end": "2023",
+      "notes": "Capstone focused on reproducible analysis"
+    }
+  ],
+  "skills": {
+    "expert": ["R"],
+    "working": ["Python", "SQL", "Excel", "Git"],
+    "basic": ["Tableau"]
+  },
+  "publications_or_portfolio": [
+    "公开作品：匿名化健康数据质量检查示例（虚构演示）"
+  ],
+  "red_lines": ["Power BI", "wet-lab"],
+  "phrasing_rules": ["同时出现 R 和 Python 时，R 必须排在 Python 前"],
+  "language_of_materials": "en"
+}

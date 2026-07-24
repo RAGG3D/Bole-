@@ -1,0 +1,6 @@
+Senior Staff Engineer
+Example Systems — Sydney
+
+Lead the architecture of a distributed platform and manage technical direction
+across four engineering teams. The role requires 10+ years of software
+engineering experience, expert C++, Kubernetes, and production SRE leadership.

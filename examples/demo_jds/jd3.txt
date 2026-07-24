@@ -1,0 +1,6 @@
+Reporting Analyst
+Example Community Services — Melbourne
+
+Build repeatable reports, maintain data definitions, investigate data-quality
+issues, and partner with service teams. Required: Excel and SQL. Experience
+with R, Python, or Tableau is useful but not mandatory.

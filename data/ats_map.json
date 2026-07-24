@@ -1,0 +1,76 @@
+{
+  "_comment": "ATS 平台能力地图。auto_submit=true 表示实测可由浏览器代理完成投递；false 表示已知有墙/挑剔控件/未实测，转手动。欢迎按 CONTRIBUTING.md 提 PR 更新。",
+  "friendly": {
+    "greenhouse": {
+      "domains": ["job-boards.greenhouse.io", "boards.greenhouse.io"],
+      "auto_submit": true,
+      "note": "表单干净，自定义文件上传顺畅，隐形 reCAPTCHA 通常不拦人工",
+      "quirks": []
+    },
+    "ashby": {
+      "domains": ["jobs.ashbyhq.com"],
+      "auto_submit": true,
+      "note": "干净；部分表单只有 Resume 一个上传位，无求职信位属正常",
+      "quirks": ["只有一个上传位时传 CV，不要硬找求职信位"]
+    },
+    "hibob": {
+      "domains": ["careers.hibob.com"],
+      "auto_submit": true,
+      "note": "顺畅；需填期望薪资数字",
+      "quirks": ["期望薪资必填数字，用任务消息里给的推荐值"]
+    },
+    "oracle_cloud": {
+      "domains": ["oraclecloud.com"],
+      "auto_submit": true,
+      "note": "多步表单；会向邮箱发一次性验证码（10 分钟有效）；常强制填出生日期",
+      "quirks": [
+        "中途会要邮箱验证码：报 NEED otp，等待补料，验证码 10 分钟有效",
+        "出生日期为必填项：facts 里没有就报 NEED dob",
+        "多步表单，单 turn 走不完属正常：超时后按 verify→continue 循环推进，预期需 3-6 轮；每轮先确认当前所在步骤再续填，不要从头重来"
+      ]
+    },
+    "workday": {
+      "domains": ["myworkdayjobs.com"],
+      "auto_submit": true,
+      "note": "每家公司租户是独立账号；首投需用户介入一次完成注册，复投需用户先登录——设计使然而非故障；简历可自动解析回填",
+      "quirks": [
+        "首次投该公司：填到注册/设置密码步骤即停，绝不填写注册表单、绝不创建或输入密码，报 NEED login，由用户本人在 OpenClaw 浏览器窗口完成注册（含设密码、点邮箱激活链接）后续跑；二次投同一公司：检测到登录页同样报 NEED login，由用户本人登录既有账号；登录态保存在浏览器 profile 里，Bole 不接触密码",
+        "简历自动解析回填后必须逐字段核对，解析覆盖的字段要改回定制内容",
+        "多步表单，单 turn 走不完属正常：超时后按 verify→continue 循环推进，预期需 3-6 轮；每轮先确认当前所在步骤再续填，不要从头重来"
+      ]
+    },
+    "lever": {
+      "domains": ["jobs.lever.co"],
+      "auto_submit": false,
+      "note": "表单干净但自动投递未实测（社区待验证，验证后欢迎 PR 把 auto_submit 改 true）",
+      "quirks": []
+    }
+  },
+  "tricky": {
+    "phenom": {
+      "domains": ["careers.marsh.com"],
+      "auto_submit": false,
+      "note": "页面易整体卡死（嵌入验证码+第三方组件），建议换浏览器/无痕重试"
+    },
+    "successfactors": {
+      "domains": ["successfactors.com"],
+      "auto_submit": false,
+      "note": "Upload from Device 控件挑剔，失败时改用拖拽或换浏览器"
+    },
+    "hirebridge": {
+      "domains": ["recruit.hirebridge.com"],
+      "auto_submit": false,
+      "note": "页面响应慢，耐心等加载完再填"
+    },
+    "linkedin_easy_apply": {
+      "domains": ["linkedin.com"],
+      "auto_submit": false,
+      "note": "仅当确为 easy_apply（apply_type=easy_apply）才归此条；需 LinkedIn 登录态，不自动投；手动时务必点“上传简历”选定制版，不要用平台存储的旧简历"
+    },
+    "seek_native": {
+      "domains": ["seek.com.au"],
+      "auto_submit": false,
+      "note": "需 SEEK 账号；同样注意上传定制简历"
+    }
+  }
+}
