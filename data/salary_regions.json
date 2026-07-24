@@ -1,0 +1,48 @@
+{
+  "_comment": "各地区数据/软件类岗位的粗略参考区间，社区数据仅供起点，以当地实际为准，欢迎 PR。README 输出推荐薪资时必须连同理由并提示用户自行校准。",
+  "AU-Melbourne": {
+    "currency": "AUD",
+    "salary_note": "含 super",
+    "bands": {
+      "junior": "80k-95k",
+      "mid": "100k-120k",
+      "senior": "130k+"
+    }
+  },
+  "AU-Sydney": {
+    "currency": "AUD",
+    "salary_note": "含 super",
+    "bands": {
+      "junior": "85k-100k",
+      "mid": "105k-130k",
+      "senior": "140k+"
+    }
+  },
+  "US-Remote": {
+    "currency": "USD",
+    "salary_note": "base，不含福利",
+    "bands": {
+      "junior": "80k-110k",
+      "mid": "110k-150k",
+      "senior": "160k+"
+    }
+  },
+  "UK-London": {
+    "currency": "GBP",
+    "salary_note": "base",
+    "bands": {
+      "junior": "35k-50k",
+      "mid": "50k-75k",
+      "senior": "80k+"
+    }
+  },
+  "SG": {
+    "currency": "SGD",
+    "salary_note": "月薪×13 起算年包常见",
+    "bands": {
+      "junior": "50k-70k",
+      "mid": "70k-100k",
+      "senior": "110k+"
+    }
+  }
+}
