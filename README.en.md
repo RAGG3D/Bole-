@@ -33,7 +33,12 @@ After showing the initial triage buckets, every `/scan` run asks whether you
 want to add a role. Paste a detail-page URL from any site, or paste the full JD
 when no usable link exists.
 
-The fourth command, `/apply` (auto-submit), is **off by default**; running it with the switch off only explains activation and touches no network. See "Auto-submit" below.
+The search window defaults to the last 7 days (written to `config.days` during
+`/setup`). To change it for one run, just tell `/scan` something like "last
+3 days only" or "extend to 14 days" (it maps to `discover --days N`—no config
+edit needed); update `days` in `profile/config.json` to change it permanently.
+
+The fourth command, `/apply` (auto-submit), is **off by default**; running it with the switch off only explains activation and touches no network. Once enabled, every submission **auto-marks its result** into the job folder's `STATUS.md` (✅ submitted / ⏸ needs input / 🧱 blocked→manual / ❓ verify first), so a glance at `Applications/` shows what went out and what is stuck where. See "Auto-submit" below.
 
 ---
 
