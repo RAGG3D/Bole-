@@ -20,3 +20,12 @@ Bole_CODEX*.md
 Bole_ROADMAP*.md
 *_LOCAL_ONLY.md
 .pii_denylist.txt
+
+# assHOLassin 本地邮箱配置、状态与凭据
+credentials*.json
+token*.json
+*.Zone.Identifier
+plugins/assHOLassin/profile/
+plugins/assHOLassin/state/
+plugins/assholassin/profile/
+plugins/assholassin/state/

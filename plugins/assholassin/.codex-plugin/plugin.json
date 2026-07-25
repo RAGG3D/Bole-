@@ -1,0 +1,38 @@
+{
+  "name": "assholassin",
+  "version": "0.5.0",
+  "description": "本地优先、先预览后执行的 IMAP 订阅垃圾邮件清理插件",
+  "author": {
+    "name": "Bole contributors",
+    "url": "https://github.com/RAGG3D/Bole-"
+  },
+  "homepage": "https://github.com/RAGG3D/Bole-/tree/main/plugins/assholassin",
+  "repository": "https://github.com/RAGG3D/Bole-",
+  "license": "MIT",
+  "keywords": [
+    "imap",
+    "email",
+    "inbox",
+    "privacy",
+    "cleanup"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "assHOLassin",
+    "shortDescription": "本地批量清理订阅垃圾邮件",
+    "longDescription": "通过标准 IMAP 在本地扫描邮件头，先 dry-run 再按确认后的计划执行标记、移入垃圾箱或永久删除。",
+    "developerName": "Bole contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Local",
+      "Email",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "帮我安全接入邮箱，只使用授权码。",
+      "为订阅垃圾邮件建立清理规则。",
+      "先 dry-run 扫描，再让我确认清理计划。"
+    ],
+    "brandColor": "#A11D33"
+  }
+}

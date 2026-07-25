@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "providers": {
+    "gmail.com": {
+      "imap_host": "imap.gmail.com",
+      "imap_port": 993,
+      "auth_label": "应用专用密码",
+      "setup_guide_zh": "在 Google 账号中开启两步验证，然后从安全设置生成应用专用密码；如账号设置中提供 IMAP 开关，请确认已启用。",
+      "trash_folder": "[Gmail]/Trash",
+      "quirks": [
+        "需要先开启两步验证才能生成应用专用密码。",
+        "如登录失败，请确认 IMAP 已启用并重新生成应用专用密码。"
+      ]
+    },
+    "outlook.com": {
+      "imap_host": "outlook.office365.com",
+      "imap_port": 993,
+      "auth_label": "应用密码",
+      "setup_guide_zh": "进入 Microsoft 账户安全设置，开启两步验证后生成应用密码；组织账号若禁用应用密码，请联系管理员。",
+      "trash_folder": "Deleted",
+      "quirks": [
+        "部分组织账号会由管理员禁用 IMAP 或应用密码。",
+        "运行时会优先采用服务器 LIST 返回的垃圾箱名称。"
+      ]
+    },
+    "hotmail.com": {
+      "imap_host": "outlook.office365.com",
+      "imap_port": 993,
+      "auth_label": "应用密码",
+      "setup_guide_zh": "进入 Microsoft 账户安全设置，开启两步验证后生成应用密码。",
+      "trash_folder": "Deleted",
+      "quirks": [
+        "部分账号可能不提供应用密码；请检查账户安全策略。",
+        "运行时会优先采用服务器 LIST 返回的垃圾箱名称。"
+      ]
+    },
+    "163.com": {
+      "imap_host": "imap.163.com",
+      "imap_port": 993,
+      "auth_label": "客户端授权码",
+      "setup_guide_zh": "登录网页邮箱，打开“设置 → POP3/SMTP/IMAP”，开启 IMAP 服务，并按网页提示生成客户端授权码。",
+      "trash_folder": "已删除",
+      "quirks": [
+        "首次 IMAP 登录可能提示 Unsafe Login；请在网页端开启客户端授权或信任此设备。",
+        "登录时使用授权码，不使用邮箱登录密码。"
+      ]
+    },
+    "126.com": {
+      "imap_host": "imap.126.com",
+      "imap_port": 993,
+      "auth_label": "客户端授权码",
+      "setup_guide_zh": "登录网页邮箱，打开“设置 → POP3/SMTP/IMAP”，开启 IMAP 服务，并按网页提示生成客户端授权码。",
+      "trash_folder": "已删除",
+      "quirks": [
+        "首次 IMAP 登录可能提示 Unsafe Login；请在网页端开启客户端授权或信任此设备。",
+        "登录时使用授权码，不使用邮箱登录密码。"
+      ]
+    },
+    "yeah.net": {
+      "imap_host": "imap.yeah.net",
+      "imap_port": 993,
+      "auth_label": "客户端授权码",
+      "setup_guide_zh": "登录网页邮箱，按网易邮箱路径打开“设置 → POP3/SMTP/IMAP”，开启 IMAP 服务并生成客户端授权码。",
+      "trash_folder": "已删除",
+      "quirks": [
+        "首次 IMAP 登录可能提示 Unsafe Login；请在网页端开启客户端授权或信任此设备。",
+        "登录时使用授权码，不使用邮箱登录密码。"
+      ]
+    },
+    "qq.com": {
+      "imap_host": "imap.qq.com",
+      "imap_port": 993,
+      "auth_label": "16 位授权码",
+      "setup_guide_zh": "登录 QQ 邮箱网页版，打开“设置 → 账户”，开启 IMAP 服务并生成 16 位授权码。",
+      "trash_folder": "Deleted Messages",
+      "quirks": [
+        "授权码应为 16 位且不含空格。",
+        "登录时使用授权码，不使用 QQ 密码。"
+      ]
+    },
+    "foxmail.com": {
+      "imap_host": "imap.qq.com",
+      "imap_port": 993,
+      "auth_label": "16 位授权码",
+      "setup_guide_zh": "登录 QQ/Foxmail 网页端，打开“设置 → 账户”，开启 IMAP 服务并生成 16 位授权码。",
+      "trash_folder": "Deleted Messages",
+      "quirks": [
+        "授权码应为 16 位且不含空格。",
+        "登录时使用授权码，不使用邮箱登录密码。"
+      ]
+    }
+  }
+}

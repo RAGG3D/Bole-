@@ -132,6 +132,22 @@ Chinese job forms commonly request monthly salary. Each application README
 converts the structured annual figure to a 12-month baseline and reminds you to
 calibrate 13–16 salary months, bonuses, and gross/net conventions yourself.
 
+## Plugins
+
+### assHOLassin: Local Mail Cleanup
+
+[assHOLassin](plugins/assholassin/README.md) is an independent Codex / Claude
+Code plugin with no dependency on Bole's job workflow. It uses Python's standard
+library and IMAP to connect to Gmail, Outlook/Hotmail, NetEase, and QQ/Foxmail,
+fetches headers only, and matches subscription-mail rules locally. Its fixed
+workflow is `/mail-setup` → `/mail-rules` → `/mail-clean`: dry-run first,
+execute only after confirmation, and require a separate confirmation for
+permanent deletion.
+
+The plugin ships with no account or credential and does not use OAuth. Each user
+enters a revocable authorization code or app password through a hidden local
+terminal prompt. Login passwords and message bodies never enter the plugin.
+
 ## FAQ
 
 **Does it cost money?** Zero paid dependencies. You only spend your own Claude subscription budget; scoring defaults to a token-saving mode (mechanical triage first, then batches of five).
@@ -164,6 +180,7 @@ calibrate 13–16 salary months, bonuses, and gross/net conventions yourself.
 | v0.2 | /apply via OpenClaw: clean-ATS auto-submit + escalation loop + verify-after-timeout | ✅ Shipped (tag `v0.2`) |
 | v0.3 | Community: ats_map PR mechanism + regional salaries + English docs + offline CI | ✅ Shipped (tag `v0.3`) |
 | v0.4 | PII history cleanup + China direct/paste routes + Chinese web/document support | ✅ Shipped |
+| v0.5 | Standalone assHOLassin IMAP mail-cleanup plugin | ✅ Shipped |
 
 Future work stays local-first, zero-paid-dependency, fact-constrained, and human-recoverable.
 
