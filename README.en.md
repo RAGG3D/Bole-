@@ -42,10 +42,6 @@ The fourth command, `/apply` (auto-submit), is **off by default**; running it wi
 
 ---
 
-## The Name
-
-"Only when there is a Bole does a thousand-li horse get found. Thousand-li horses are common; a Bole is rare." The reality of the job market: capable candidates abound, but a resume gets six seconds of attention. Bole appraises each JD like the legendary judge of horses—reading what it truly asks for, then bringing your **genuinely held** matching strengths to the front.
-
 ## Three Founding Principles
 
 1. **The facts ledger is the only source of truth**. Facts you confirm item by item during `/setup`—experience, skills, quantified results—form your local `profile/facts.json`. All generated materials and form answers may reference only ledger facts: **fabrication is structurally impossible**, and a deterministic scanner gate-keeps before any PDF is produced.
