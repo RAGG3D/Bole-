@@ -53,7 +53,7 @@
   "basics": {
     "full_name": "", "email": "", "phone": "", "address": "",
     "links": {"linkedin": "", "github": "", "portfolio": ""},
-    "work_rights": "工作权利原文，如：临时毕业生签证，完整工作权利，无需担保",
+    "work_rights": "工作权利原文，如：临时毕业生签证，完整工作权利，无需雇主担保",
     "requires_no_citizenship_roles": true,
     "notice_period": "", "locations": [],
     "date_of_birth": null

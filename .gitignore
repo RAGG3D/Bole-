@@ -14,3 +14,9 @@ Thumbs.db
 
 # PDF 构建的临时文件
 *.tmp.pdf
+
+# 内部文档与 PII 防护(本地保留,永不入库)
+Bole_CODEX*.md
+Bole_ROADMAP*.md
+*_LOCAL_ONLY.md
+.pii_denylist.txt
