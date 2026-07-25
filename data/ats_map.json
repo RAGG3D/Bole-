@@ -71,6 +71,31 @@
       "domains": ["seek.com.au"],
       "auto_submit": false,
       "note": "需 SEEK 账号；同样注意上传定制简历"
+    },
+    "zhipin": {
+      "domains": ["zhipin.com"],
+      "auto_submit": false,
+      "note": "BOSS直聘采用先沟通后投递，反爬极强；Bole 只生成材料和开场白，必须由用户本人手动沟通"
+    },
+    "zhaopin": {
+      "domains": ["zhaopin.com"],
+      "auto_submit": false,
+      "note": "智联招聘投递需要登录账号；可尝试直连读取公开详情，实际投递转手动"
+    },
+    "51job": {
+      "domains": ["51job.com"],
+      "auto_submit": false,
+      "note": "前程无忧投递需要登录账号，页面也可能触发访问验证；遇墙或登录要求一律转手动"
+    },
+    "liepin": {
+      "domains": ["liepin.com"],
+      "auto_submit": false,
+      "note": "猎聘投递和沟通需要登录账号；Bole 不模拟登录，保留投递包供手动使用"
+    },
+    "lagou": {
+      "domains": ["lagou.com"],
+      "auto_submit": false,
+      "note": "拉勾投递需要登录账号且公开详情可能受访问限制；只做礼貌直连，失败即转手动"
     }
   }
 }

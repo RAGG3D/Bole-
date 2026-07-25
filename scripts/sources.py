@@ -18,13 +18,15 @@ from pathlib import Path
 from typing import Any
 
 
-UA = "Bole/0.3 (+https://github.com/RAGG3D/Bole-; polite public-job fetcher)"
+UA = "Bole/0.4 (+https://github.com/RAGG3D/Bole-; polite public-job fetcher)"
 BOT_WALL = re.compile(
-    r"datadome|captcha-delivery|__cf_chl|px-captcha|just a moment",
+    r"datadome|captcha-delivery|__cf_chl|px-captcha|just a moment|"
+    r"geetest|极验|滑块验证|安全验证|访问验证|verify\.zhipin",
     re.IGNORECASE,
 )
 MIN_REQUEST_INTERVAL = 2.0
 _last_request_at = 0.0
+_last_response_content_type: str | None = None
 
 
 class SourceError(RuntimeError):
@@ -86,7 +88,8 @@ def request_bytes(
     retry_429: bool = True,
     timeout: float = 20,
 ) -> tuple[bytes, str]:
-    global _last_request_at
+    global _last_request_at, _last_response_content_type
+    _last_response_content_type = None
     headers = {"User-Agent": UA, "Accept": "application/json,text/html;q=0.9,*/*;q=0.8"}
     if content_type:
         headers["Content-Type"] = content_type
@@ -96,6 +99,7 @@ def request_bytes(
         with urllib.request.urlopen(request, timeout=timeout) as response:
             raw = response.read()
             final_url = response.geturl()
+            _last_response_content_type = response.headers.get("Content-Type")
     except urllib.error.HTTPError as exc:
         _last_request_at = time.monotonic()
         if exc.code == 429 and retry_429:
@@ -118,9 +122,55 @@ def request_bytes(
     return raw, final_url
 
 
+def _declared_charsets(raw: bytes, content_type: str | None) -> list[str]:
+    declared: list[str] = []
+    if content_type:
+        match = re.search(
+            r"\bcharset\s*=\s*[\"']?\s*([a-zA-Z0-9._-]+)",
+            content_type,
+            re.IGNORECASE,
+        )
+        if match:
+            declared.append(match.group(1))
+
+    # HTML 标签名与 charset 属性均为 ASCII，可先用 latin-1 无损查看头部。
+    head = raw[:16384].decode("latin-1")
+    for pattern in (
+        r"<meta\b[^>]*\bcharset\s*=\s*[\"']?\s*([a-zA-Z0-9._-]+)",
+        r"<meta\b(?=[^>]*http-equiv\s*=\s*[\"']?content-type[\"']?)[^>]*"
+        r"content\s*=\s*[\"'][^\"']*\bcharset\s*=\s*([a-zA-Z0-9._-]+)",
+    ):
+        match = re.search(pattern, head, re.IGNORECASE)
+        if match:
+            declared.append(match.group(1))
+            break
+    return declared
+
+
+def decode_response_body(raw: bytes, content_type: str | None = None) -> str:
+    """按声明编码、UTF-8、GB18030 的顺序严格解码，最后才替换坏字节。"""
+    candidates = [*_declared_charsets(raw, content_type), "utf-8", "gb18030"]
+    tried: set[str] = set()
+    for candidate in candidates:
+        if not candidate:
+            continue
+        normalized = candidate.casefold()
+        if normalized in tried:
+            continue
+        tried.add(normalized)
+        try:
+            return raw.decode(candidate)
+        except (LookupError, UnicodeDecodeError):
+            continue
+    return raw.decode("utf-8", errors="replace")
+
+
 def request_text(url: str, **kwargs: Any) -> tuple[str, str]:
+    global _last_response_content_type
+    # 清空上次请求的元数据；测试 mock request_bytes 时可安全回退到 HTML meta/探测。
+    _last_response_content_type = None
     raw, final_url = request_bytes(url, **kwargs)
-    return raw.decode("utf-8", errors="replace"), final_url
+    return decode_response_body(raw, _last_response_content_type), final_url
 
 
 def iso_date_days(value: object) -> int | None:
@@ -408,13 +458,52 @@ def meta_content(markup: str, key: str) -> str | None:
     return None
 
 
+def split_page_title(page_title: str | None) -> tuple[str | None, str | None]:
+    """从常见中文职位页 <title> 回退抽取“职位、公司”；不确定时返回空。"""
+    if not page_title:
+        return None, None
+    parts = [
+        part.strip(" \t\r\n「」『』【】[]")
+        for part in re.split(r"\s*(?:[-–—_|])\s*", page_title)
+        if part.strip()
+    ]
+    platforms = {
+        "boss直聘",
+        "智联招聘",
+        "前程无忧",
+        "猎聘",
+        "拉勾",
+        "拉勾网",
+        "51job",
+        "zhaopin",
+        "liepin",
+    }
+    while parts and parts[-1].casefold() in platforms:
+        parts.pop()
+    if len(parts) >= 2:
+        title = re.sub(r"招聘$", "", parts[0]).strip("「」『』【】 ")
+        company = re.sub(r"招聘$", "", parts[1]).strip("「」『』【】 ")
+        return (title or None), (company or None)
+    if len(parts) == 1:
+        match = re.fullmatch(r"(.{2,60}?)招聘(.{2,100})", parts[0])
+        if match:
+            company = match.group(1).strip("「」『』【】 ")
+            title = re.sub(r"(?:职位)?招聘$", "", match.group(2)).strip(
+                "「」『』【】 "
+            )
+            return (title or None), (company or None)
+    return None, None
+
+
 def jd_url(url: str) -> dict[str, Any]:
     # 直链既用于人工补录也用于投前补全；断网时应尽快进入人工队列。
     markup, final_url = request_text(url, timeout=8)
     if BOT_WALL.search(markup):
         return {"status": "bot_walled", "source": "url", "url": final_url}
-    title = meta_content(markup, "og:title") or first_tag_text(markup, "title")
-    company = meta_content(markup, "og:site_name")
+    page_title = first_tag_text(markup, "title")
+    fallback_title, fallback_company = split_page_title(page_title)
+    title = meta_content(markup, "og:title") or fallback_title
+    company = meta_content(markup, "og:site_name") or fallback_company
     location = meta_content(markup, "job:location")
     text = html_text(markup)
     return jd_result(
@@ -463,6 +552,7 @@ def resolve_redirect_once(url: str) -> str | None:
         with opener.open(request, timeout=8) as response:
             raw = response.read(65536)
             final = response.geturl()
+            content_type = response.headers.get("Content-Type")
     except urllib.error.HTTPError as exc:
         _last_request_at = time.monotonic()
         location = exc.headers.get("Location") if exc.headers else None
@@ -473,7 +563,7 @@ def resolve_redirect_once(url: str) -> str | None:
         _last_request_at = time.monotonic()
         return None
     _last_request_at = time.monotonic()
-    if BOT_WALL.search(raw.decode("utf-8", errors="replace")):
+    if BOT_WALL.search(decode_response_body(raw, content_type)):
         return None
     return final
 

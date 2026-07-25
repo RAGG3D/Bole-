@@ -30,7 +30,9 @@
 询问目标职位、目标公司、目标技能、薪资期望（数字、币种、含/不含 super）、平台
 偏好、LinkedIn 地点和关键词。SEEK 无免费公开接口，说明 SEEK 职位需用户手贴。
 询问公开 Workday/Greenhouse/Lever/Ashby 职位板信息时，只记录公开 host/token，不要
-索取登录 Cookie 或凭据。可收集用户想手动补录的职位 URL。
+索取登录 Cookie 或凭据。可收集用户想手动补录的职位 URL，包括中国大陆招聘站的
+职位详情链接；说明这些站不做站内搜索，遇登录墙/访问验证就转手贴 JD。询问简历和
+求职信使用英文还是中文，分别写为 `language_of_materials: "en"` 或 `"zh"`。
 
 ## 第五节：stretch 容忍度
 
@@ -46,7 +48,7 @@
 
 确认后创建三个文件。**schema 以下面两份骨架为准，键名与嵌套结构不得增删改**：
 
-- `profile/facts.json`（`language_of_materials` 默认 `en`）：
+- `profile/facts.json`（`language_of_materials` 支持 `en` / `zh`，默认 `en`）：
 
 ```json
 {

@@ -1,5 +1,5 @@
 {
-  "_comment": "各地区数据/软件类岗位的粗略参考区间，社区数据仅供起点，以当地实际为准，欢迎 PR。README 输出推荐薪资时必须连同理由并提示用户自行校准。",
+  "_comment": "各地区数据/软件类岗位的粗略参考区间，社区数据仅供起点，必须持续由社区校准并以当地实际行情为准，欢迎 PR。README 输出推荐薪资时必须连同理由并提示用户自行校准。",
   "AU-Melbourne": {
     "currency": "AUD",
     "salary_note": "含 super",
@@ -43,6 +43,42 @@
       "junior": "50k-70k",
       "mid": "70k-100k",
       "senior": "110k+"
+    }
+  },
+  "CN-Beijing": {
+    "currency": "CNY",
+    "salary_note": "月薪;年包常见 13-16 薪",
+    "bands": {
+      "junior": "12k-20k/月",
+      "mid": "20k-35k/月",
+      "senior": "35k+/月"
+    }
+  },
+  "CN-Shanghai": {
+    "currency": "CNY",
+    "salary_note": "月薪;年包常见 13-16 薪",
+    "bands": {
+      "junior": "13k-22k/月",
+      "mid": "22k-38k/月",
+      "senior": "38k+/月"
+    }
+  },
+  "CN-Shenzhen": {
+    "currency": "CNY",
+    "salary_note": "月薪;年包常见 13-16 薪",
+    "bands": {
+      "junior": "13k-22k/月",
+      "mid": "22k-38k/月",
+      "senior": "38k+/月"
+    }
+  },
+  "CN-Hangzhou": {
+    "currency": "CNY",
+    "salary_note": "月薪;年包常见 13-16 薪",
+    "bands": {
+      "junior": "12k-20k/月",
+      "mid": "20k-35k/月",
+      "senior": "35k+/月"
     }
   }
 }

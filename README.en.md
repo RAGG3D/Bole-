@@ -29,6 +29,10 @@ Inside Claude Code, run three commands in order:
 
 Then open the `Applications/` folder: one folder per matching job, containing the full JD, tailored CV PDF, tailored cover letter PDF, and a README that tells you **how to apply and what salary to enter**. Just follow it.
 
+After showing the initial triage buckets, every `/scan` run asks whether you
+want to add a role. Paste a detail-page URL from any site, or paste the full JD
+when no usable link exists.
+
 The fourth command, `/apply` (auto-submit), is **off by default**; running it with the switch off only explains activation and touches no network. See "Auto-submit" below.
 
 ---
@@ -37,11 +41,13 @@ The fourth command, `/apply` (auto-submit), is **off by default**; running it wi
 
 **In one sentence: a Claude Code skill pack (skill repo)—not a website, cloud service, or standalone backend.** You clone the repository and run `claude` inside it: Claude handles interviews, understanding, scoring, and writing; the repository's standard-library Python scripts provide repeatable discovery, deduplication, mechanical triage, red-line scanning, PDF generation, ATS routing, and submission records. Your data stays on your own machine.
 
-Three capability layers ship together:
+Four capability layers ship together:
 
 - **v0.1**: `/doctor`, `/setup`, `/scan`—profiling, discovery, scoring, and manual application packs;
 - **v0.2**: optional `/apply`—sequential auto-submission via OpenClaw, only to ATS platforms the capability map allows;
 - **v0.3**: community-maintained ATS map, regional salary starting points, English docs, and offline CI.
+- **v0.4**: complete repository PII cleanup plus Mainland China direct links,
+  GB18030 pages, and Chinese-language documents.
 
 ### The Name
 
@@ -65,7 +71,7 @@ Three capability layers ship together:
 ## How It Works
 
 ```
-Discover jobs via free public channels (LinkedIn guest API / Workday / Greenhouse / Lever / Ashby / pasted JD)
+Discover jobs via free public channels (LinkedIn / Workday / public ATS / any detail URL / pasted JD)
         │
         ▼
 Ledger dedup → mechanical triage: regex bucketing filters out senior/ineligible/red-line roles first
@@ -118,9 +124,32 @@ Safety design:
 | Workday | Public JSON | Configure target company sites in config |
 | Greenhouse / Lever / Ashby | Public board JSON | Configure company tokens in config |
 | Company career pages | URL fetch | Bot-wall detection; walled URLs go to the manual queue (never lost) |
+| Mainland China job sites | User-pasted job detail URL | Polite direct fetch; login/access walls fall back to pasted JD |
 | SEEK | Pasted JD | No free interface; paste it in, the rest of the flow is identical |
 
 Note: after a company rename or dual branding, dual-key dedup can still miss duplicates—check manually before applying.
+
+## Mainland China Job Sites
+
+On-site search at BOSS Zhipin, Zhaopin, 51job, Liepin, and Lagou commonly
+requires an account or uses strong anti-bot controls. Bole does not simulate
+login, perform on-site search, or bypass GeeTest, sliders, or access checks.
+Use either of these paths:
+
+1. run `/scan` and paste a job **detail-page URL** at the fixed add-a-role
+   prompt after initial triage. Bole tries a polite
+   `sources.py jd --source url` fetch with UTF-8 and GBK/GB2312/GB18030 support;
+2. if the result is `bot_walled` or incomplete, copy and paste the full JD in
+   the same run. The original URL stays in the manual queue.
+
+All of these platforms are manual-only in `ats_map`. BOSS Zhipin is
+conversation-first: Bole can prepare a Chinese CV, cover letter, and opening
+message strictly from the facts ledger and JD, but you must send the message
+yourself. Set `facts.language_of_materials` to `"zh"` for Chinese documents.
+
+Chinese job forms commonly request monthly salary. Each application README
+converts the structured annual figure to a 12-month baseline and reminds you to
+calibrate 13–16 salary months, bonuses, and gross/net conventions yourself.
 
 ## FAQ
 
@@ -140,7 +169,7 @@ Note: after a company rename or dual branding, dual-key dedup can still miss dup
 
 **Does a missing browser break it?** No. Bole keeps the complete HTML; open it in a browser and Ctrl+P to save as PDF.
 
-**Australia only?** No. Defaults use Melbourne as the example; region, keywords, and salary reference ranges (AU/US/UK/SG built in) are all configurable.
+**Australia only?** No. Defaults use Melbourne as the example; region, keywords, and salary reference ranges (AU/US/UK/SG plus Beijing, Shanghai, Shenzhen, and Hangzhou) are configurable.
 
 **Windows?** Linux / macOS / Windows supported (WSL2 recommended; native Windows works after manually confirming the environment per the README).
 
@@ -153,6 +182,7 @@ Note: after a company rename or dual branding, dual-key dedup can still miss dup
 | v0.1 | /doctor checkup + /setup interview profiling + /scan scoring & "manual application packs" | ✅ Shipped (tag `v0.1`) |
 | v0.2 | /apply via OpenClaw: clean-ATS auto-submit + escalation loop + verify-after-timeout | ✅ Shipped (tag `v0.2`) |
 | v0.3 | Community: ats_map PR mechanism + regional salaries + English docs + offline CI | ✅ Shipped (tag `v0.3`) |
+| v0.4 | PII history cleanup + China direct/paste routes + Chinese web/document support | ✅ Shipped |
 
 Future work stays local-first, zero-paid-dependency, fact-constrained, and human-recoverable.
 

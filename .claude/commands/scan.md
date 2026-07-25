@@ -33,7 +33,23 @@
    数组后再跑 triage；打分阶段的资格与红线闸门仍按全文 JD 生效。
 4. 展示各桶清单，让用户可以即时调整明显误分。triage 只允许读取 title(+company)，
    绝不能把全文 JD 提前塞给它。
-5. 脚本超时或网络失败时，先检查 `state/` 中已产出的中间文件再决定从哪一步重试；
+5. **固定补录环节（每轮都问，不能省略）**：在展示初始桶清单之后、开始全文打分
+   之前，明确询问用户：“有没有想补投的职位链接？任何网站都行，包括中国大陆招聘站，
+   直接贴给我；没有链接就贴 JD 文本。”如果用户：
+   - 贴 URL：运行
+     `python3 scripts/sources.py jd --source url --url "<用户链接>"`。`status=ok` 时从
+     返回的 title/company/location/text 构造上述 `source="manual"`、
+     `channel="url"` candidate，将 JD 全文保存在本轮 `state/`，追加到
+     `state/discover.json.candidates`，再重跑 ledger.filter 与 triage，并展示更新后的
+     桶；title/company 为 null 时请用户补齐，绝不猜测。
+   - URL 返回 `status=bot_walled`：把原 URL 与原因写入本轮 manual_queue 并在汇总
+     保留，明确提示“该站触发访问验证，Bole 不绕过；请改贴 JD 全文”。
+   - 贴 JD 文本：保存到 `state/` 后走 `sources.py jd --source paste --file <txt>`，
+     构造 `source="manual"`、`channel="paste"` candidate，按上一条同样重新去重与
+     triage。
+   - 回答没有：直接继续。`config.manual_candidates` 仍只在 discover 阶段消费，
+     这个固定提问是本轮临时补录入口，两者不可互相替代。
+6. 脚本超时或网络失败时，先检查 `state/` 中已产出的中间文件再决定从哪一步重试；
    不要盲目重跑全程。机器人墙和断网的手动 URL 必须保留在人工队列。
 
 ## 2. Claude 打分规则（必须原样执行）
@@ -53,6 +69,11 @@ recommended_salary_note、recommended_salary_form。JD 全文少于 800 字符�
 跳外部 ATS 却没抓到 ATS 全文，记为 stub。全部裁决写
 `state/scan_<date>_verdicts.json`。
 
+中国地区薪资条目是**月薪区间**，但 `recommended_salary_form.amount` 继续保持单一
+**年薪整数**，避免破坏既有数据契约：从选定月薪按 12 薪基准换算为年薪，并在
+`recommended_salary_note` 明写“月薪口径、按 12 薪换算；13–16 薪及奖金需用户按
+实际校准”。不得臆测具体奖金或薪数。
+
 ## 3. 分层归档
 
 按 fit 创建：
@@ -71,8 +92,8 @@ recommended_salary_note、recommended_salary_form。JD 全文少于 800 字符�
 对每个 generate 岗，只依据 `profile/facts.json` 与该岗完整 JD 生成
 `_content/cv.json`、`_content/cover.json`，遵守材料 schema 和 phrasing_rules：
 
-- CV 用 `facts.language_of_materials` 指定的语言，subtitle/profile 围绕 JD 真实
-  重合点，不能把 JD 要求当成用户技能。
+- CV 与求职信用 `facts.language_of_materials` 指定的语言（支持 `"en"` / `"zh"`）；
+  subtitle/profile 围绕 JD 真实重合点，不能把 JD 要求当成用户技能。
 - 求职信 4–6 段，并包含**恰好一句**平静、不卑不亢的真实差距说明，紧接一句可迁移
   能力；不道歉、不自贬。即使强匹配也只用一句具体而轻微的真实缺口。
 - 台账没有的技能、工具、年限或成果必须绕开，绝不写入。
@@ -99,12 +120,19 @@ python3 scripts/build_docs.py "<folder>/_content/cover.json" "<folder>/<Name> - 
 职位/公司概述；分数、理由和真实弱项；推荐薪资数字+币种+含/不含 super+散文理由
 （无参考来源时按打分规则 (5) 兜底写"无参考区间，请自行调研"）；材料清单；常见表单
 答案速查（只取 facts/config，与 apply.md 的表单速查同一口径，必含三项：**工作权利
-原文、通知期、如何得知职位=LinkedIn（固定答案）**）；提醒核对完整 JD。
+原文、通知期、如何得知职位**）。LinkedIn 来源填 LinkedIn；其他来源如实填对应
+公司职位板或平台名。用户手动补录的中国站链接绝不能写成 LinkedIn；提醒核对完整
+JD。
 
 投递指引使用 `apply_url`（空则 url）的 hostname 匹配 `data/ats_map.json`：
 hostname 小写去端口，命中 `hostname == d` 或 `hostname.endswith("." + d)`，多条取
 最长 domain，path/query 不参与。说明手动投是否顺畅和 quirks；只有 auto_submit=true
 且用户开关开启才写“可交 `/apply`”。offsite 缺 apply_url 写“ATS 未知，转手动”。
+目标 hostname 命中 zhipin/zhaopin/51job/liepin/lagou 时，README 还必须注明：
+这些平台不自动投递；表单通常按**月薪**填写。把年薪结构值
+`recommended_salary_form.amount` 除以 12 后取合理整数展示，并明确“这是 12 薪基准
+月薪；13–16 薪、奖金和税前/税后口径请用户自行核对”。BOSS直聘另给一段只基于事实
+台账和 JD 的简短沟通开场白，供用户本人发送，不能承诺台账外能力。
 
 最后输出：新岗数 / generate / list / skip / 人工队列数；generate 清单表格；哪些可
 由 `/apply`、哪些需手动。完成索引后才运行：
