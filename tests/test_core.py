@@ -216,16 +216,26 @@ class CoreFlowTests(unittest.TestCase):
 
     def test_chinese_bot_wall_returns_manual_status(self) -> None:
         module = load_script_module("sources")
-        markup = "<html><body><div id='geetest'>请完成滑块验证</div></body></html>"
         url = "https://www.zhipin.com/job_detail/walled.html"
-        with mock.patch.object(
-            module, "request_bytes", return_value=(markup.encode(), url)
-        ):
-            result = module.jd_url(url)
-        self.assertEqual(
-            result,
-            {"status": "bot_walled", "source": "url", "url": url},
+        markers = (
+            "<div id='geetest'>请完成验证</div>",
+            "<p>请完成极验</p>",
+            "<p>请完成滑块验证</p>",
+            "<p>安全验证</p>",
+            "<p>访问验证</p>",
+            "<script src='https://verify.zhipin.com/challenge.js'></script>",
         )
+        for marker in markers:
+            with self.subTest(marker=marker):
+                markup = f"<html><body>{marker}</body></html>"
+                with mock.patch.object(
+                    module, "request_bytes", return_value=(markup.encode(), url)
+                ):
+                    result = module.jd_url(url)
+                self.assertEqual(
+                    result,
+                    {"status": "bot_walled", "source": "url", "url": url},
+                )
 
     def test_unsplittable_page_title_does_not_guess(self) -> None:
         module = load_script_module("sources")
