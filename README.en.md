@@ -40,6 +40,8 @@ edit needed); update `days` in `profile/config.json` to change it permanently.
 
 The fourth command, `/apply` (auto-submit), is **off by default**; running it with the switch off only explains activation and touches no network. Once enabled, every submission **auto-marks its result** into the job folder's `STATUS.md` (✅ submitted / ⏸ needs input / 🧱 blocked→manual / ❓ verify first), so a glance at `Applications/` shows what went out and what is stuck where. See "Auto-submit" below.
 
+The repo also ships an independent plugin unrelated to job hunting: **assHOLassin**, a local mail-cleanup assassin. Three commands: `/mail-setup` connects your own mailbox with an auth code you generate yourself (Gmail / Outlook·Hotmail / NetEase 163·126 / QQ, etc.) → `/mail-rules` sets sender/subject keywords, a time window, and a cleanup level (soft-mark / trash / purge) → `/mail-clean` always dry-runs the hit list first and acts only after you confirm. See "Plugins" below.
+
 ---
 
 ## Three Founding Principles
