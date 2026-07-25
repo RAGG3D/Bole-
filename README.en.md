@@ -4,7 +4,7 @@
 
 > **Fine horses are common; a good judge of them is rare—now there is one.**
 
-Bole is an open-source job-application assistant that lives inside [Claude Code](https://claude.com/claude-code): it discovers roles, scores honest fit, and tailors a CV, cover letter, and application guide to every JD—based strictly on **experience you have confirmed**. No mass applying. No fabrication.
+Bole is an open-source job-application assistant that lives inside [Claude Code](https://claude.com/claude-code): it discovers roles, scores honest fit, and tailors a CV, cover letter, and application guide to every JD—based strictly on **experience you have confirmed**. No mass applying. No fabrication. It is a clone-and-run skill pack—not a website or cloud service; your data stays on your own machine.
 
 ---
 
@@ -37,36 +37,15 @@ The fourth command, `/apply` (auto-submit), is **off by default**; running it wi
 
 ---
 
-## What It Is
-
-**In one sentence: a Claude Code skill pack (skill repo)—not a website, cloud service, or standalone backend.** You clone the repository and run `claude` inside it: Claude handles interviews, understanding, scoring, and writing; the repository's standard-library Python scripts provide repeatable discovery, deduplication, mechanical triage, red-line scanning, PDF generation, ATS routing, and submission records. Your data stays on your own machine.
-
-Four capability layers ship together:
-
-- **v0.1**: `/doctor`, `/setup`, `/scan`—profiling, discovery, scoring, and manual application packs;
-- **v0.2**: optional `/apply`—sequential auto-submission via OpenClaw, only to ATS platforms the capability map allows;
-- **v0.3**: community-maintained ATS map, regional salary starting points, English docs, and offline CI.
-- **v0.4**: complete repository PII cleanup plus Mainland China direct links,
-  GB18030 pages, and Chinese-language documents.
-
-### The Name
+## The Name
 
 "Only when there is a Bole does a thousand-li horse get found. Thousand-li horses are common; a Bole is rare." The reality of the job market: capable candidates abound, but a resume gets six seconds of attention. Bole appraises each JD like the legendary judge of horses—reading what it truly asks for, then bringing your **genuinely held** matching strengths to the front.
 
-### Three Founding Principles
+## Three Founding Principles
 
 1. **The facts ledger is the only source of truth**. Facts you confirm item by item during `/setup`—experience, skills, quantified results—form your local `profile/facts.json`. All generated materials and form answers may reference only ledger facts: **fabrication is structurally impossible**, and a deterministic scanner gate-keeps before any PDF is produced.
 2. **Red lines**. Profiling explicitly asks "which skills do you NOT have and must never appear?" (e.g., never used Power BI, no wet-lab work). If a red-line term appears in generated material, the scanner refuses to produce the PDF.
 3. **The honest gap sentence**. For weaker-fit roles, the cover letter contains **exactly one** calm, unapologetic statement of the real gap, immediately followed by your transferable strengths—no false perfection, no self-deprecation.
-
-## What It Is Not
-
-- ❌ Not a mass-application bot—each run only generates materials for high-fit roles, with a cap;
-- ❌ No "embellishing" or inventing experience—see the ledger and red lines above;
-- ❌ No CAPTCHA solving, no bot-wall evasion—walls always route to the manual queue, no exceptions;
-- ❌ No taking online assessments/video interviews/personality tests on your behalf;
-- ❌ Never touches your passwords—all login/registration is done by you in the browser;
-- ❌ No promise of interviews or offers.
 
 ## How It Works
 
