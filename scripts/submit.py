@@ -317,6 +317,56 @@ def add_attempt(
     )
 
 
+STATUS_BADGES = {
+    "submitted": ("✅", "已提交"),
+    "needs_user": ("⏸", "需要补料"),
+    "blocked": ("🧱", "已阻断，转手动"),
+    "manual": ("📝", "手动投递"),
+    "unknown": ("❓", "状态未知，先 verify 再决定"),
+    "failed": ("❌", "投递失败"),
+}
+
+
+def mark_job(job: Path, entry: dict[str, Any]) -> None:
+    """把台账状态同步为岗位文件夹里的可见标记（STATUS.md）；标记失败不阻断投递流程。"""
+    status = str(entry.get("status") or "unknown")
+    badge, label = STATUS_BADGES.get(status, ("❓", status))
+    lines = [
+        f"# {badge} 投递状态：{label}",
+        "",
+        f"- 职位：{entry.get('jd_key', '')}",
+        f"- 状态：`{status}`（更新于 {timestamp()}）",
+        f"- ATS：{entry.get('ats', '')}",
+    ]
+    if entry.get("evidence"):
+        lines.append(f"- 凭证：{entry['evidence']}")
+    attempts = entry.get("attempts", [])
+    if attempts:
+        lines.extend(["", "## 最近尝试", "", "| 时间 | 动作 | 结果 |", "|---|---|---|"])
+        for attempt in attempts[-5:]:
+            lines.append(
+                f"| {attempt.get('ts', '')} | {attempt.get('action', '')} "
+                f"| {attempt.get('result', '')} |"
+            )
+    lines.extend(["", "此文件由 scripts/submit.py 自动维护，请勿手工编辑。"])
+    try:
+        (job / "STATUS.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"警告：无法写入 {job / 'STATUS.md'}：{exc}", file=sys.stderr)
+
+
+def mark_job_cli(job: Path) -> int:
+    """按台账重建岗位文件夹的 STATUS.md（供旧记录补标记或手工修复用）。"""
+    verdict = load_verdict(job)
+    data = load_submissions()
+    entry = find_entry(data, verdict["jd_key"])
+    if not entry:
+        raise SubmitError("该职位没有投递记录，无法生成状态标记")
+    mark_job(job, entry)
+    print(f"已更新 {job / 'STATUS.md'}")
+    return 0
+
+
 def apply_result(
     entry: dict[str, Any], action: str, kind: str, payload: str
 ) -> str:
@@ -463,6 +513,7 @@ def run_job(
         add_attempt(entry, "submit", "FAILED", "JD 为 stub，投前防线拦下")
         entry = replace_or_add(data, entry)
         save_submissions(data)
+        mark_job(job, entry)
         raise SubmitError("JD 仍为 stub；必须先抓完整 JD 并重跑资格/红线裁决")
     target_url = str(verdict.get("apply_url") or verdict.get("url"))
     hostname = (urlparse(target_url).hostname or "").casefold()
@@ -472,6 +523,7 @@ def run_job(
         add_attempt(entry, "submit", "FAILED", "LinkedIn 岗位页禁止自动投递")
         entry = replace_or_add(data, entry)
         save_submissions(data)
+        mark_job(job, entry)
         raise SubmitError("绝不把 linkedin.com 岗位页交给自动投递；请转手动")
     mapping = load_object(ats_map_path(), "ATS 能力地图")
     matched = match_ats(target_url, mapping)
@@ -481,6 +533,7 @@ def run_job(
         add_attempt(entry, "submit", "FAILED", "ATS 域名未收录，转手动")
         entry = replace_or_add(data, entry)
         save_submissions(data)
+        mark_job(job, entry)
         raise SubmitError("ATS 域名未收录，已记入手动队列")
     ats_name, ats_entry = matched
     allowed = auto.get("allowed_ats", [])
@@ -490,6 +543,7 @@ def run_job(
         add_attempt(entry, "submit", "FAILED", "ATS 不允许自动提交，转手动")
         entry = replace_or_add(data, entry)
         save_submissions(data)
+        mark_job(job, entry)
         raise SubmitError(f"{ats_name} 不在自动投递路由中，已记入手动队列")
     cv, cover = materials(job)
     ensure_no_redlines(job, facts)
@@ -498,6 +552,7 @@ def run_job(
     entry = replace_or_add(data, entry)
     # 先以 status=unknown 落盘：进程若在投递会话中途死亡，去重铁则会拦住下一次 run，必须先 verify
     save_submissions(data)
+    mark_job(job, entry)
     message = task_message(verdict, config, facts, ats_name, ats_entry, cv, cover)
     try:
         kind, payload = invoke_openclaw(
@@ -506,9 +561,11 @@ def run_job(
     except (KeyboardInterrupt, SystemExit):
         add_attempt(entry, "submit", "UNKNOWN", "桥接进程被中断；请先 submit.py verify 再决定续跑")
         save_submissions(data)
+        mark_job(job, entry)
         raise
     line = apply_result(entry, "submit", kind, payload)
     save_submissions(data)
+    mark_job(job, entry)
     print(line)
     return 0
 
@@ -556,6 +613,7 @@ def continue_job(job: Path, answer: str | None) -> int:
     kind, payload = invoke_openclaw(message, thread=entry["thread"], timeout=timeout)
     line = apply_result(entry, "continue", kind, payload)
     save_submissions(data)
+    mark_job(job, entry)
     print(line)
     return 0
 
@@ -573,6 +631,7 @@ def verify_job(job: Path) -> int:
     )
     line = apply_verify(entry, kind, payload)
     save_submissions(data)
+    mark_job(job, entry)
     print(line)
     return 0
 
@@ -622,6 +681,8 @@ def make_parser() -> argparse.ArgumentParser:
     verify.add_argument("--job", required=True, type=Path)
     status = sub.add_parser("status", help="打印中文投递台账")
     status.add_argument("--all", action="store_true", help="连空分组也显示")
+    mark = sub.add_parser("mark", help="按台账重建岗位文件夹的 STATUS.md 标记")
+    mark.add_argument("--job", required=True, type=Path)
     return parser
 
 
@@ -634,6 +695,8 @@ def main() -> int:
             return continue_job(args.job, args.answer)
         if args.command == "verify":
             return verify_job(args.job)
+        if args.command == "mark":
+            return mark_job_cli(args.job)
         return print_status(args.all)
     except SubmitError as exc:
         print(f"错误：{exc}", file=sys.stderr)

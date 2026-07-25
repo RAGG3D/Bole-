@@ -17,6 +17,10 @@
    python3 scripts/triage.py --candidates state/filtered.json --config profile/config.json --out state/buckets.json
    ```
 
+   搜索时间窗口默认取 `config.days`（建档时设定，单位天）；用户本轮想临时改窗口
+   （如"只看最近 3 天"/"扩到 14 天"）时，给 discover 加 `--days N` 即可，不必改
+   config。想永久修改就更新 `config.days`。
+
 3. 用户手贴 JD：先运行 `sources.py jd --source paste --file <txt>`，从文本抽取
    title/company，构造一条与 `state/discover.json` 中候选**同构**的记录：
 

@@ -280,6 +280,32 @@ class SubmitLoopTests(unittest.TestCase):
         self.assertIn("自动投递未开启", refused.stderr)
         self.assertEqual(len(self.calls()), 1, "开关关闭后 continue 不得触碰 OpenClaw")
 
+    def test_status_marker_written_into_job_folder(self) -> None:
+        self.script_path.write_text(
+            "RESULT: SUBMITTED | evidence=confirmation-777\n", encoding="utf-8"
+        )
+        result = self.run_new()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        marker = (self.job / "STATUS.md").read_text(encoding="utf-8")
+        self.assertIn("✅", marker)
+        self.assertIn("已提交", marker)
+        self.assertIn("confirmation-777", marker)
+        self.assertIn(self.verdict["jd_key"], marker)
+
+    def test_mark_subcommand_rebuilds_marker(self) -> None:
+        self.script_path.write_text(
+            "RESULT: BLOCKED | reason=captcha | detail=challenge\n", encoding="utf-8"
+        )
+        result = self.run_new()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        marker_path = self.job / "STATUS.md"
+        self.assertIn("🧱", marker_path.read_text(encoding="utf-8"))
+        marker_path.unlink()
+        rebuilt = self.command("mark", "--job", self.job)
+        self.assertEqual(rebuilt.returncode, 0, rebuilt.stderr)
+        self.assertIn("🧱", marker_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(self.calls()), 1, "mark 不得触碰 OpenClaw")
+
 
 if __name__ == "__main__":
     unittest.main()

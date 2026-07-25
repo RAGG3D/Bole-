@@ -107,7 +107,8 @@ Safety design:
 - Strictly sequential submission, at least 30 seconds apart, with a per-run cap;
 - Login/registration/password steps are done by **you** in the browser—Bole never receives, stores, or types any password; the sole exception is an email one-time code (OTP) you relay, discarded after use (each Workday company tenant is a separate account, so first or repeat applications may need you to log in first—by design, not a fault);
 - **Timeout ≠ failure**: the agent may have submitted and lost its reply. After a timeout Bole verifies read-only first; `UNKNOWN` status is **never auto-resubmitted**; a role already `submitted` or `unknown` is refused outright (`--force` overrides but can double-submit—use only after manual verification);
-- CAPTCHA, online assessments, video interviews, OAuth-only registration → blocked immediately, routed to manual.
+- CAPTCHA, online assessments, video interviews, OAuth-only registration → blocked immediately, routed to manual;
+- **Submission status marked back into `Applications/`**: on every status change, the job folder's `STATUS.md` is updated in place (✅ submitted / ⏸ needs input / 🧱 blocked→manual / 📝 manual / ❓ unknown—verify first), so a glance at the folder tells you where each application stands.
 
 ## Privacy & Security
 
